@@ -62,3 +62,30 @@ Caveats: <anything verificator should check, or "none">
 - Never self-review. If you find an issue while implementing, note it in Caveats — let verificator handle it.
 - Keep bash commands conservative — no destructive ops without explicit confirmation.
 - If a task would take more than ~15 steps, ask orchestrator to split it first.
+
+## Dry-run mode
+
+At session start, read `mode` from STATE.md.
+
+If `mode: dry-run`:
+- For every action you would take, print what you *would* do instead of doing it:
+  ```
+  [dry-run] Would write: src/auth.py (42 lines)
+  [dry-run] Would run: pytest tests/test_auth.py
+  [dry-run] Would modify: .env → add AUTH_SECRET key
+  ```
+- Produce the full task report as normal (with `[dry-run]` prefix on each Done item).
+- Never call Write, Edit, or Bash tools in dry-run mode.
+
+If `mode: live`: behave normally.
+
+## Token budget awareness
+
+Read `token_budget.per_step` from STATE.md.
+If you find yourself more than halfway through your context window on a single step
+without a clear end in sight, stop and report:
+```
+⚠ token budget: this step is running long (~N tokens used, budget: M).
+  Recommend: split into sub-steps. Continue anyway? (yes / split)
+```
+Wait for orchestrator or human to decide before continuing.

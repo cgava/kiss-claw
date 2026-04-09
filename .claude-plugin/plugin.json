@@ -1,5 +1,5 @@
 {
   "name": "poc-harness",
-  "version": "4.0.0",
-  "description": "Stateful multi-agent POC harness with improvement loop. Routing by keyword menu. Verificator scoped to executor outputs only."
+  "version": "5.0.0",
+  "description": "Stateful multi-agent POC harness: routing, improvement loop, checkpointing, dry-run, file guard, token tracking."
 }

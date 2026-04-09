@@ -2,11 +2,17 @@
   {
     "type": "prompt",
     "events": ["SessionStart"],
-    "prompt": "Session starting. Before doing anything else:\n\n1. Print the agent menu and wait for the human to pick one:\n\n```\n→ Which agent for this session?\n  orchestrator — planning, state, phase tracking\n  executor     — implementation, code, files, commands\n  verificator  — review executor outputs\n  analyzer     — improvement loop, analyze history\n  general      — no specific agent\n```\n\nWait for the human to type one of these keywords (or an unambiguous prefix like 'exec', 'verif', 'orch', 'ana', 'gen').\n\n2. Once received, confirm with one line:\n   '→ [agent-name] activated'\n\n3. Write the agent tag to `.poc-session-agent`:\n   content: `<agent-name>` (one of: orchestrator, executor, verificator, analyzer, general)\n\n4. If `general` was chosen, print:\n   'Session tagged as general — improvements will apply to global config only (CLAUDE.md, MEMORY.md, settings.json).'\n   Then proceed as a normal Claude session with no agent persona.\n\n5. Otherwise, activate the chosen agent: read its memory files and print its startup brief as defined in its agent.md."
+    "prompt": "Session starting. Before doing anything else:\n\n1. Check if CHECKPOINT.md exists and is more recent than STATE.md. If so, read CHECKPOINT.md first — it contains the latest state snapshot from a compacted session.\n\n2. Print the agent menu and wait for the human to pick one:\n\n```\n→ Which agent for this session?\n  orchestrator — planning, state, phase tracking\n  executor     — implementation, code, files, commands\n  verificator  — review executor outputs\n  analyzer     — improvement loop, analyze history\n  general      — no specific agent\n```\n\nWait for the human to type one of these keywords (or an unambiguous prefix: orch, exec, verif, ana, gen).\n\n3. Once received, confirm: '→ [agent-name] activated'\n\n4. Write the agent tag to `.poc-session-agent` (content: agent name, one line).\n\n5. If 'general': print 'Session tagged as general — improvements apply to global config only.' Then proceed normally with no agent persona.\n\n6. Otherwise: activate the chosen agent — read its memory files and print its startup brief."
+  },
+  {
+    "type": "command",
+    "events": ["PreToolUse"],
+    "matcher": "Write|Edit|str_replace_based_edit_tool|Bash",
+    "command": "bash $SKILL_DIR/../hooks/guard.sh"
   },
   {
     "type": "prompt",
     "events": ["SessionEnd"],
-    "prompt": "Session ending. Silently:\n1. Read `.poc-session-agent` to get this session's agent tag.\n2. If the active agent was orchestrator: update STATE.md — set 'updated' to today, append a one-line log entry (max 12 words) summarising what was done.\n3. Delete `.poc-session-agent`.\n4. Print nothing."
+    "prompt": "Session ending. Silently:\n1. Read `.poc-session-agent`.\n2. Run: bash .claude/plugins/poc-harness/hooks/checkpoint.sh . — this writes CHECKPOINT.md.\n3. If active agent was orchestrator: update STATE.md — set 'updated' to today, append one-line log entry (max 12 words).\n4. Delete `.poc-session-agent`.\n5. Print nothing."
   }
 ]

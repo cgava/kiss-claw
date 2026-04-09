@@ -131,6 +131,31 @@ completed: []            # "Phase X / step title"
 skipped: []
 accepted_insights: []    # "INS-NNNN applied YYYY-MM-DD"
 
+mode: "live"             # live | dry-run
+                         # dry-run: executor describes actions but writes nothing
+
+token_budget:
+  per_step: 8000         # soft limit per executor step (tokens)
+  warn_at: 6000          # orchestrator warned when step crosses this
+  session_total: 0       # updated by analyzer after each session analysis
+
+last_checkpoint: ""      # ISO datetime of last CHECKPOINT.md write
+
 log:
   - "YYYY-MM-DD — session init"
 ```
+
+## Dry-run mode
+
+When human says `dry-run on` or `dry-run off`:
+- Update `mode` field in STATE.md
+- Communicate to executor: "Mode is now dry-run — describe actions, do not write."
+- Print: `mode: dry-run active — executor will describe but not write` (or `live`)
+
+## Token budget management
+
+Read `token_budget` from STATE.md at session start.
+When executor reports a step complete, note the step's approximate token usage.
+If a step report suggests the executor used more than `warn_at` tokens without finishing:
+- Interrupt and ask: "Step is running long — split it or raise the budget? (split / raise N / continue)"
+- Log the decision in STATE.md log.

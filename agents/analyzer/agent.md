@@ -28,8 +28,9 @@ Your `MEMORY_analyzer.md` contains analyzer-specific learnings:
 
 | File | Purpose |
 |------|---------|
-| `ANALYZED.md` | Index of analyzed sessions with agent tag + digest |
-| `INSIGHTS.md` | Structured proposals with status lifecycle |
+| `ANALYZED.md`     | Index of analyzed sessions with agent tag, digest, token stats |
+| `INSIGHTS.md`     | Structured proposals with status lifecycle |
+| `TOKEN_STATS.md`  | Running token consumption ledger across all sessions |
 
 Read-only access to all agent files, PLAN.md, STATE.md, REVIEWS.md, CLAUDE.md, MEMORY*.md.
 
@@ -63,6 +64,46 @@ Classify each session as one of:
 - `orchestrator` | `executor` | `verificator` | `analyzer` | `general`
 
 `general` = no agent identified, or the human explicitly said "none" at routing prompt.
+
+### Step 2.5 — Extract token consumption for each session
+
+Claude Code transcripts (`.jsonl`) include token usage metadata per message.
+For each new session, extract:
+
+```bash
+cat <session.jsonl> | python3 -c "
+import sys, json
+input_t = output_t = turns = 0
+for line in sys.stdin:
+    try:
+        msg = json.loads(line)
+        usage = msg.get('usage', msg.get('message', {}).get('usage', {}))
+        input_t  += usage.get('input_tokens', 0)
+        output_t += usage.get('output_tokens', 0)
+        if msg.get('role') in ('user', 'human'): turns += 1
+    except: pass
+total = input_t + output_t
+tpt = round(output_t / turns, 0) if turns else 0
+print(f'input={input_t} output={output_t} total={total} turns={turns} tpt={tpt}')
+"
+```
+
+Record per session:
+- `input_tokens` — context fed in (grows if MEMORY files are large)
+- `output_tokens` — tokens generated
+- `total_tokens` — input + output
+- `turns` — number of human messages (proxy for session length)
+- `tokens_per_turn` — output_tokens / turns (efficiency: lower = less back-and-forth)
+- `budget_status` — compare total_tokens / turns against STATE.md `token_budget.per_step`:
+  - `ok` if below `per_step`
+  - `warn` if above `warn_at`
+  - `over` if above `per_step`
+
+If the transcript format doesn't expose token counts, estimate from character count
+(`~4 chars ≈ 1 token`) and mark values with `~` prefix.
+
+Also compute running totals and append to `TOKEN_STATS.md` (see format below).
+
 
 ### Step 3 — Extract signals per session
 
@@ -126,10 +167,41 @@ Append new entries only. One entry per atomic finding. Format:
 ### Step 6 — Update ANALYZED.md
 
 ```markdown
-| session-id | agent | date | lines | digest |
-|------------|-------|------|-------|--------|
-| abc123 | executor | 2025-04-09 | 342 | 4f2a1b3c |
+| session-id | agent | date | lines | digest | input_tok | output_tok | turns | tpt | budget |
+|------------|-------|------|-------|--------|-----------|------------|-------|-----|--------|
+| abc123 | executor | 2025-04-09 | 342 | 4f2a1b3c | 12400 | 3200 | 8 | 400 | ok |
 ```
+
+`tpt` = tokens_per_turn (output_tokens / turns). Lower = more efficient sessions.
+
+### Step 6.5 — Append to TOKEN_STATS.md
+
+`TOKEN_STATS.md` is a running ledger across all sessions. Append one row per analyzed session,
+then recompute the summary block at the top:
+
+```markdown
+# TOKEN_STATS.md
+
+## Summary (auto-updated)
+- Total sessions tracked : N
+- Total tokens consumed  : N (input: N / output: N)
+- Avg tokens/session     : N
+- Avg tokens/turn (tpt)  : N  ← efficiency indicator
+- Most expensive agent   : executor (avg N tok/session)
+- Most efficient agent   : orchestrator (avg N tpt)
+- Budget violations (over) : N sessions
+- Budget warnings (warn)   : N sessions
+
+## Per-session log
+| date | session-id | agent | total_tok | tpt | budget | top_cost_driver |
+|------|------------|-------|-----------|-----|--------|-----------------|
+| 2025-04-09 | abc123 | executor | 15600 | 400 | ok | large context re-read |
+```
+
+`top_cost_driver` = brief note on why this session was expensive (optional, analyzer's judgment):
+examples: "large context re-read", "many corrections", "long bash output", "n/a"
+
+If TOKEN_STATS.md doesn't exist yet, create it with the header and first row.
 
 ### Step 7 — Print summary
 
@@ -139,9 +211,45 @@ Sessions analyzed : N (orchestrator: A, executor: B, verificator: C, general: D)
 New facts         : N
 New proposals     : N  (agent-scoped: N, config-scoped: N)
 Top proposal      : <one line>
-Run /insights to review
+
+Token consumption (new sessions):
+  Total tokens   : N
+  Avg tpt        : N  (lower = more efficient)
+  Budget status  : ok: N / warn: N / over: N
+  See TOKEN_STATS.md for full history
+
+Run /insights to review proposals
 =========================
 ```
+
+---
+
+## /tokens command
+
+Read TOKEN_STATS.md and print a compact report:
+
+```
+=== TOKEN CONSUMPTION ===
+Sessions tracked : N
+Total tokens     : N  (input: N / output: N)
+Avg / session    : N tokens
+Avg tpt          : N  (tokens per turn — lower = more efficient)
+
+By agent:
+  executor     : avg N tok/session, avg N tpt  [N sessions]
+  orchestrator : avg N tok/session, avg N tpt  [N sessions]
+  verificator  : avg N tok/session, avg N tpt  [N sessions]
+  general      : avg N tok/session, avg N tpt  [N sessions]
+
+Budget violations: N over / N warn
+Most expensive session: <date> <agent> — N tokens (<driver>)
+=========================
+```
+
+If TOKEN_STATS.md doesn't exist: "No token data yet — run /analyze first."
+
+Optionally, the human can ask for a trend: "tokens trend" → print the last 10 sessions
+sorted by date showing total_tok and tpt to spot drift (context bloat, efficiency loss).
 
 ---
 

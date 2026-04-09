@@ -1,35 +1,36 @@
-# poc-harness v4
+# poc-harness v5
 
-Plugin Claude Code multi-agent avec état persistant et boucle d'amélioration continue.
-Zéro dépendance. Tout vit dans des fichiers markdown dans le repo.
+Plugin Claude Code multi-agent avec état persistant, boucle d'amélioration continue,
+checkpointing, dry-run, protection des fichiers critiques, et suivi de consommation tokens.
+Zéro dépendance externe.
+
+---
+
+## Nouveautés v5
+
+| Feature | Détail |
+|---------|--------|
+| `PreToolUse` guard | Bloque toute écriture non autorisée sur les fichiers critiques |
+| Checkpointing | `/compact` écrit `CHECKPOINT.md` avant perte de contexte |
+| Dry-run mode | `dry-run on/off` — executor décrit sans écrire |
+| Token budget | Limite par step, alerte si dépassement |
+| Token tracking | L'analyzer mesure la conso de chaque session → `TOKEN_STATS.md` |
 
 ---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────┐
-│           SessionStart hook             │
-│  Affiche le menu → attend un mot clé   │
-│  Tag la session avec l'agent choisi     │
-└──────────┬──────────────────────────────┘
-           │
-    ┌──────▼──────┐
-    │ orchestrator │  planifie, tient STATE.md, délègue
-    └──────┬──────┘
-           │ délègue les tâches
-    ┌──────▼──────┐     ┌─────────────┐
-    │   executor  │────▶│ verificator │  review outputs
-    │ implémente  │     │ executor    │  uniquement
-    └─────────────┘     └─────────────┘
-                               │ informe orchestrator
-                        ┌──────▼──────┐
-                        │   analyzer  │  analyse transcripts
-                        │             │  → INSIGHTS.md
-                        └─────────────┘
-                               │
-                          humain décide
-                         accept/reject/apply
+SessionStart hook
+  └─ affiche menu → attend mot clé → tag session (.poc-session-agent)
+
+orchestrator   planifie, STATE.md, délègue, gère dry-run + budget
+executor       implémente (respects dry-run, s'arrête si budget warn)
+verificator    review outputs executor → REVIEWS.md
+analyzer       analyse transcripts → INSIGHTS.md + TOKEN_STATS.md
+
+PreToolUse hook  bloque écritures sur fichiers protégés
+SessionEnd hook  écrit CHECKPOINT.md + update STATE.md log
 ```
 
 ---
@@ -37,48 +38,17 @@ Zéro dépendance. Tout vit dans des fichiers markdown dans le repo.
 ## Installation
 
 ```bash
-tar xzf poc-harness-v4.tar.gz -C ~/.claude/plugins/
+tar xzf poc-harness-v5.tar.gz -C ~/.claude/plugins/
+cp ~/.claude/plugins/poc-harness-v5/MEMORY.md.template ./MEMORY.md
+# Remplir MEMORY.md : nom projet, stack, non-goals
 ```
 
-Dans `.claude/settings.json` du projet :
+Dans `.claude/settings.json` :
 ```json
 {
-  "plugins": [
-    { "type": "local", "path": "~/.claude/plugins/poc-harness-v4" }
-  ]
+  "plugins": [{ "type": "local", "path": "~/.claude/plugins/poc-harness-v5" }]
 }
 ```
-
-Copier et remplir le template mémoire :
-```bash
-cp ~/.claude/plugins/poc-harness-v4/MEMORY.md.template ./MEMORY.md
-# Remplir : nom du projet, stack, non-goals
-```
-
----
-
-## Routing au démarrage de chaque session
-
-Claude affiche toujours le menu et attend un mot clé — pas d'inférence automatique :
-
-```
-→ Which agent for this session?
-  orchestrator — planning, state, phase tracking
-  executor     — implementation, code, files, commands
-  verificator  — review executor outputs
-  analyzer     — improvement loop, analyze history
-  general      — no specific agent
-```
-
-Taper le mot clé (ou un préfixe non-ambigu : `orch`, `exec`, `verif`, `ana`, `gen`).
-
-```
-→ executor activated
-executor ready — last task: implement /auth endpoint
-```
-
-Si **general** → session non taggée → l'analyzer ne pourra proposer des changements que
-sur `CLAUDE.md`, `MEMORY.md`, `settings.json` — jamais sur les agents.
 
 ---
 
@@ -86,79 +56,74 @@ sur `CLAUDE.md`, `MEMORY.md`, `settings.json` — jamais sur les agents.
 
 ```
 ton-projet/
-├── PLAN.md                  ← roadmap immuable (orchestrator)
-├── STATE.md                 ← état courant (orchestrator)
-├── MEMORY.md                ← contexte partagé (tous les agents)
-├── MEMORY_orchestrator.md   ← apprentissages orchestrator
-├── MEMORY_executor.md       ← apprentissages executor (stack, conventions, erreurs)
-├── MEMORY_verificator.md    ← apprentissages verificator (patterns récurrents)
-├── MEMORY_analyzer.md       ← apprentissages analyzer (signaux fiables vs faux positifs)
-├── INSIGHTS.md              ← propositions d'amélioration (analyzer)
-├── ANALYZED.md              ← index sessions analysées — évite les doublons
-├── REVIEWS.md               ← rapports de review executor (verificator)
-└── SCRATCH.md               ← notes volatiles de session
+├── PLAN.md                  ← roadmap (orchestrator)
+├── STATE.md                 ← état courant + mode + token_budget (orchestrator)
+├── CHECKPOINT.md            ← snapshot pré-compact (hooks auto)
+├── MEMORY.md                ← contexte partagé
+├── MEMORY_orchestrator.md   ┐
+├── MEMORY_executor.md       ├─ mémoire privée par agent
+├── MEMORY_verificator.md    │
+├── MEMORY_analyzer.md       ┘
+├── INSIGHTS.md              ← proposals d'amélioration (analyzer)
+├── ANALYZED.md              ← index sessions + token stats (analyzer)
+├── TOKEN_STATS.md           ← ledger conso tokens (analyzer)
+├── REVIEWS.md               ← rapports review executor (verificator)
+└── SCRATCH.md               ← notes volatiles
 ```
 
 ---
 
-## Périmètre de chaque agent
+## Fichiers protégés (guard PreToolUse)
 
-| Agent | Fait | Ne fait pas | Écrit dans |
-|-------|------|-------------|------------|
-| orchestrator | planifie, délègue, tient l'état | implémente, review | STATE.md, PLAN.md |
-| executor | implémente les tâches | planifie, review | fichiers du projet |
-| verificator | review outputs executor | planifie, implémente, review proposals | REVIEWS.md |
-| analyzer | analyse transcripts, propose améliorations | implémente, review code | INSIGHTS.md, ANALYZED.md |
+Ces fichiers ne peuvent être écrits que par leur agent propriétaire.
+Toute tentative d'un autre agent est bloquée avant exécution :
+
+| Fichier | Propriétaire |
+|---------|-------------|
+| `PLAN.md` | orchestrator |
+| `STATE.md` | orchestrator |
+| `MEMORY.md` | analyzer (via apply) |
+| `ANALYZED.md` | analyzer |
+| `INSIGHTS.md` | analyzer |
+| `TOKEN_STATS.md` | analyzer |
+| `CHECKPOINT.md` | hook SessionEnd |
 
 ---
 
-## Cycle complet d'une phase
+## Commandes
+
+| Commande | Agent | Effet |
+|----------|-------|-------|
+| `mark done` | orchestrator | Valide l'étape courante |
+| `dry-run on/off` | orchestrator | Bascule le mode executor |
+| `/compact` | orchestrator | Écrit CHECKPOINT.md avant compact |
+| `/analyze` | analyzer | Analyse nouveaux transcripts + conso tokens |
+| `/tokens` | analyzer | Rapport conso tokens sans re-analyser |
+| `/insights` | analyzer | Review et apply des proposals |
+
+---
+
+## Suivi de consommation tokens
+
+Après chaque `/analyze`, `TOKEN_STATS.md` est mis à jour :
 
 ```
-orchestrator : découpe la phase en steps
-    ↓
-executor     : implémente step par step → task report
-    ↓
-verificator  : review l'output executor → REVIEWS.md
-    ↓
-orchestrator : lit REVIEWS.md, marque done / rework
-    ↓
-(fin de phase)
-    ↓
-analyzer     : analyse les transcripts de la phase
-             → INSIGHTS.md (scoped par agent de session)
-    ↓
-humain       : /insights → accept / reject / defer
-             → apply #N → diff → confirme
-    ↓
-orchestrator : log dans STATE.md → démarre phase suivante
+=== TOKEN CONSUMPTION ===
+Sessions tracked : 12
+Total tokens     : 187 400  (input: 142 000 / output: 45 400)
+Avg / session    : 15 617
+Avg tpt          : 312  (tokens per turn)
+
+By agent:
+  executor     : avg 22 400 tok/session, avg 480 tpt  [7 sessions]
+  orchestrator : avg 8 100 tok/session,  avg 180 tpt  [3 sessions]
+  verificator  : avg 6 200 tok/session,  avg 140 tpt  [2 sessions]
+
+Budget violations: 1 over / 2 warn
+Most expensive: 2025-04-08 executor — 34 200 tokens (many corrections)
+=========================
 ```
 
----
-
-## Boucle d'amélioration — scope des proposals
-
-L'analyzer tague chaque transcript avec l'agent de la session (via `.poc-session-agent`).
-Les proposals sont strictement scopées :
-
-| Session agent | Targets autorisés |
-|--------------|-------------------|
-| `orchestrator` | `agent:orchestrator`, `MEMORY_orchestrator.md`, `PLAN.md` |
-| `executor` | `agent:executor`, `MEMORY_executor.md`, `CLAUDE.md` |
-| `verificator` | `agent:verificator`, `MEMORY_verificator.md` |
-| `analyzer` | `agent:analyzer`, `MEMORY_analyzer.md` |
-| `general` | `CLAUDE.md`, `MEMORY.md`, `settings.json` uniquement |
-
-Proposer de modifier un agent depuis une session `general` = violation de scope,
-flaggée automatiquement avec confidence `low`.
-
----
-
-## Mémoire des agents
-
-Chaque agent charge automatiquement :
-- `MEMORY.md` — contexte partagé (stack, goal, décisions clés)
-- `MEMORY_<agent>.md` — apprentissages privés de l'agent
-
-Les fichiers `MEMORY_<agent>.md` sont créés au premier besoin par l'agent ou l'analyzer.
-Templates disponibles dans `MEMORY_agents.md.template`.
+`tokens_per_turn` est l'indicateur d'efficacité clé : une valeur qui monte sur plusieurs
+sessions executor signale soit du context bloat, soit beaucoup de corrections — ce qui
+peut lui-même générer une proposal d'amélioration dans INSIGHTS.md.
