@@ -1,7 +1,7 @@
 # MEMORY.md — shared project context
 
 > Auto-loaded by all agents. Keep under 200 lines.
-> Edit manually or via analyzer apply protocol.
+> Edit manually or via kiss-improver apply protocol.
 
 ## Project
 
@@ -24,10 +24,10 @@
 
 ## Agents in use
 
-- orchestrator — planning and state
-- executor — implementation
-- verificator — reviews
-- analyzer — improvement loop
+- kiss-orchestrator — planning and state
+- kiss-executor — implementation
+- kiss-verificator — reviews
+- kiss-improver — improvement loop
 
 ## Key decisions
 

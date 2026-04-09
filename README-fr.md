@@ -14,9 +14,9 @@ Keep It Simple, Stupid ! The simplest yet ambitious Claude AI harness for code. 
 |---------|--------|
 | `PreToolUse` guard | Bloque toute écriture non autorisée sur les fichiers critiques |
 | Checkpointing | `/compact` écrit `CHECKPOINT.md` avant perte de contexte |
-| Dry-run mode | `dry-run on/off` — executor décrit sans écrire |
+| Dry-run mode | `dry-run on/off` — kiss-executor décrit sans écrire |
 | Token budget | Limite par step, alerte si dépassement |
-| Token tracking | L'analyzer mesure la conso de chaque session → `TOKEN_STATS.md` |
+| Token tracking | Le kiss-improver mesure la conso de chaque session → `TOKEN_STATS.md` |
 
 ---
 
@@ -26,10 +26,10 @@ Keep It Simple, Stupid ! The simplest yet ambitious Claude AI harness for code. 
 SessionStart hook
   └─ affiche menu → attend mot clé → tag session (.poc-session-agent)
 
-orchestrator   planifie, STATE.md, délègue, gère dry-run + budget
-executor       implémente (respects dry-run, s'arrête si budget warn)
-verificator    review outputs executor → REVIEWS.md
-analyzer       analyse transcripts → INSIGHTS.md + TOKEN_STATS.md
+kiss-orchestrator   planifie, STATE.md, délègue, gère dry-run + budget
+kiss-executor       implémente (respects dry-run, s'arrête si budget warn)
+kiss-verificator    review outputs kiss-executor → REVIEWS.md
+kiss-improver       analyse transcripts → INSIGHTS.md + TOKEN_STATS.md
 
 PreToolUse hook  bloque écritures sur fichiers protégés
 SessionEnd hook  écrit CHECKPOINT.md + update STATE.md log
@@ -88,20 +88,20 @@ claude plugin uninstall kiss-claw@kiss-claw
 
 ```
 ton-projet/
-└── .kiss-claw/                  ← tous les fichiers d'état (configurable via KISS_CLAW_DIR)
-    ├── PLAN.md                  ← roadmap (orchestrator)
-    ├── STATE.md                 ← état courant + mode + token_budget (orchestrator)
-    ├── CHECKPOINT.md            ← snapshot pré-compact (hooks auto)
-    ├── MEMORY.md                ← contexte partagé
-    ├── MEMORY_orchestrator.md   ┐
-    ├── MEMORY_executor.md       ├─ mémoire privée par agent
-    ├── MEMORY_verificator.md    │
-    ├── MEMORY_analyzer.md       ┘
-    ├── INSIGHTS.md              ← proposals d'amélioration (analyzer)
-    ├── ANALYZED.md              ← index sessions + token stats (analyzer)
-    ├── TOKEN_STATS.md           ← ledger conso tokens (analyzer)
-    ├── REVIEWS.md               ← rapports review executor (verificator)
-    └── SCRATCH.md               ← notes volatiles
+└── .kiss-claw/                          ← tous les fichiers d'état (configurable via KISS_CLAW_DIR)
+    ├── PLAN.md                          ← roadmap (kiss-orchestrator)
+    ├── STATE.md                         ← état courant + mode + token_budget (kiss-orchestrator)
+    ├── CHECKPOINT.md                    ← snapshot pré-compact (hooks auto)
+    ├── MEMORY.md                        ← contexte partagé
+    ├── MEMORY_kiss-orchestrator.md      ┐
+    ├── MEMORY_kiss-executor.md          ├─ mémoire privée par agent
+    ├── MEMORY_kiss-verificator.md       │
+    ├── MEMORY_kiss-improver.md          ┘
+    ├── INSIGHTS.md                      ← proposals d'amélioration (kiss-improver)
+    ├── ANALYZED.md                      ← index sessions + token stats (kiss-improver)
+    ├── TOKEN_STATS.md                   ← ledger conso tokens (kiss-improver)
+    ├── REVIEWS.md                       ← rapports review kiss-executor (kiss-verificator)
+    └── SCRATCH.md                       ← notes volatiles
 ```
 
 ---
@@ -113,12 +113,12 @@ Toute tentative d'un autre agent est bloquée avant exécution :
 
 | Fichier | Propriétaire |
 |---------|-------------|
-| `.kiss-claw/PLAN.md` | orchestrator |
-| `.kiss-claw/STATE.md` | orchestrator |
-| `.kiss-claw/MEMORY.md` | analyzer (via apply) |
-| `.kiss-claw/ANALYZED.md` | analyzer |
-| `.kiss-claw/INSIGHTS.md` | analyzer |
-| `.kiss-claw/TOKEN_STATS.md` | analyzer |
+| `.kiss-claw/PLAN.md` | kiss-orchestrator |
+| `.kiss-claw/STATE.md` | kiss-orchestrator |
+| `.kiss-claw/MEMORY.md` | kiss-improver (via apply) |
+| `.kiss-claw/ANALYZED.md` | kiss-improver |
+| `.kiss-claw/INSIGHTS.md` | kiss-improver |
+| `.kiss-claw/TOKEN_STATS.md` | kiss-improver |
 | `.kiss-claw/CHECKPOINT.md` | hook SessionEnd |
 
 ---
@@ -127,12 +127,12 @@ Toute tentative d'un autre agent est bloquée avant exécution :
 
 | Commande | Agent | Effet |
 |----------|-------|-------|
-| `mark done` | orchestrator | Valide l'étape courante |
-| `dry-run on/off` | orchestrator | Bascule le mode executor |
-| `/compact` | orchestrator | Écrit CHECKPOINT.md avant compact |
-| `/analyze` | analyzer | Analyse nouveaux transcripts + conso tokens |
-| `/tokens` | analyzer | Rapport conso tokens sans re-analyser |
-| `/insights` | analyzer | Review et apply des proposals |
+| `mark done` | kiss-orchestrator | Valide l'étape courante |
+| `dry-run on/off` | kiss-orchestrator | Bascule le mode kiss-executor |
+| `/compact` | kiss-orchestrator | Écrit CHECKPOINT.md avant compact |
+| `/analyze` | kiss-improver | Analyse nouveaux transcripts + conso tokens |
+| `/tokens` | kiss-improver | Rapport conso tokens sans re-analyser |
+| `/insights` | kiss-improver | Review et apply des proposals |
 
 ---
 
@@ -148,15 +148,15 @@ Avg / session    : 15 617
 Avg tpt          : 312  (tokens per turn)
 
 By agent:
-  executor     : avg 22 400 tok/session, avg 480 tpt  [7 sessions]
-  orchestrator : avg 8 100 tok/session,  avg 180 tpt  [3 sessions]
-  verificator  : avg 6 200 tok/session,  avg 140 tpt  [2 sessions]
+  kiss-executor     : avg 22 400 tok/session, avg 480 tpt  [7 sessions]
+  kiss-orchestrator : avg 8 100 tok/session,  avg 180 tpt  [3 sessions]
+  kiss-verificator  : avg 6 200 tok/session,  avg 140 tpt  [2 sessions]
 
 Budget violations: 1 over / 2 warn
-Most expensive: 2025-04-08 executor — 34 200 tokens (many corrections)
+Most expensive: 2025-04-08 kiss-executor — 34 200 tokens (many corrections)
 =========================
 ```
 
 `tokens_per_turn` est l'indicateur d'efficacité clé : une valeur qui monte sur plusieurs
-sessions executor signale soit du context bloat, soit beaucoup de corrections — ce qui
+sessions kiss-executor signale soit du context bloat, soit beaucoup de corrections — ce qui
 peut lui-même générer une proposal d'amélioration dans INSIGHTS.md.

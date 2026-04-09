@@ -25,7 +25,7 @@ show_status() {
     return
   fi
 
-  for f in MEMORY.md MEMORY_orchestrator.md MEMORY_executor.md MEMORY_verificator.md MEMORY_analyzer.md; do
+  for f in MEMORY.md MEMORY_kiss-orchestrator.md MEMORY_kiss-executor.md MEMORY_kiss-verificator.md MEMORY_kiss-improver.md; do
     if [ -f "$KC_DIR/$f" ]; then
       echo "  ✓ $f"
     else
@@ -60,7 +60,7 @@ do_init() {
 
   # Split agent memory templates into individual files
   if [ -f "$TEMPLATE_DIR/MEMORY_agents.md.template" ]; then
-    for agent in orchestrator executor verificator analyzer; do
+    for agent in kiss-orchestrator kiss-executor kiss-verificator kiss-improver; do
       target="$KC_DIR/MEMORY_${agent}.md"
       if [ -f "$target" ]; then
         echo "  skip MEMORY_${agent}.md (already exists)"

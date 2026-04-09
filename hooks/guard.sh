@@ -29,7 +29,7 @@ check_protected() {
   for f in "${PROTECTED[@]}"; do
     if [[ "$target" == "$f" || "$target" == *"/$f" || "$target" == "$KC_DIR/$f" || "$target" == *"/$KC_DIR/$f" ]]; then
       echo "BLOCK: $KC_DIR/$f is a protected file. Only its owning agent may write to it."
-      echo "  Owning agents: PLAN.md→orchestrator, MEMORY.md→analyzer, STATE.md→orchestrator, ANALYZED.md+INSIGHTS.md→analyzer"
+      echo "  Owning agents: PLAN.md→kiss-orchestrator, MEMORY.md→kiss-improver, STATE.md→kiss-orchestrator, ANALYZED.md+INSIGHTS.md→kiss-improver"
       exit 1
     fi
   done

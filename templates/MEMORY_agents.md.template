@@ -1,6 +1,6 @@
-# MEMORY_orchestrator.md
+# MEMORY_kiss-orchestrator.md
 
-> Orchestrator-specific learnings. Auto-loaded by orchestrator agent.
+> kiss-orchestrator-specific learnings. Auto-loaded by kiss-orchestrator agent.
 > Updated when durable patterns are identified. Keep under 60 lines.
 
 ## Phase patterns that worked well
@@ -13,13 +13,13 @@
 
 ## Task split heuristics
 
-<!-- How to divide work across executor/verificator for this project -->
+<!-- How to divide work across kiss-executor/kiss-verificator for this project -->
 
 ---
-# MEMORY_executor.md
+# MEMORY_kiss-executor.md
 
-> Executor-specific learnings. Auto-loaded by executor agent.
-> Updated when verificator flags recurring mistakes, or human corrects same thing twice.
+> kiss-executor-specific learnings. Auto-loaded by kiss-executor agent.
+> Updated when kiss-verificator flags recurring mistakes, or human corrects same thing twice.
 > Keep under 60 lines.
 
 ## Stack constraints (hard rules)
@@ -34,17 +34,17 @@
 
 <!-- Example: "pytest --tb=short breaks CI — use pytest -q instead" -->
 
-## Never do (flagged by verificator)
+## Never do (flagged by kiss-verificator)
 
 <!-- Mistakes found more than once -->
 
 ---
-# MEMORY_verificator.md
+# MEMORY_kiss-verificator.md
 
-> Verificator-specific learnings. Auto-loaded by verificator agent.
+> kiss-verificator-specific learnings. Auto-loaded by kiss-verificator agent.
 > Keep under 60 lines.
 
-## Recurring issues in executor output
+## Recurring issues in kiss-executor output
 
 <!-- Patterns worth checking proactively, by category -->
 
@@ -56,14 +56,14 @@
 
 <!-- Things the human has called out more than once during reviews -->
 
-## Proposal patterns (from analyzer reviews)
+## Proposal patterns (from kiss-improver reviews)
 
 <!-- Proposals that were consistently accepted or rejected, and why -->
 
 ---
-# MEMORY_analyzer.md
+# MEMORY_kiss-improver.md
 
-> Analyzer-specific learnings. Auto-loaded by analyzer agent.
+> kiss-improver-specific learnings. Auto-loaded by kiss-improver agent.
 > Keep under 60 lines.
 
 ## High-signal friction patterns (reliable)
