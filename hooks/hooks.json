@@ -1,18 +1,37 @@
-[
-  {
-    "type": "prompt",
-    "events": ["SessionStart"],
-    "prompt": "Session starting. Before doing anything else:\n\n0. Ensure the kiss-claw output directory exists: `mkdir -p .kiss-claw` (or the value of `$KISS_CLAW_DIR` if set, default `.kiss-claw`). All kiss-claw state files live under this directory.\n\n1. Check if `.kiss-claw/CHECKPOINT.md` exists and is more recent than `.kiss-claw/STATE.md`. If so, read `.kiss-claw/CHECKPOINT.md` first — it contains the latest state snapshot from a compacted session.\n\n2. Print the agent menu and wait for the human to pick one:\n\n```\n→ Which agent for this session?\n  kiss-orchestrator — planning, state, phase tracking\n  kiss-executor     — implementation, code, files, commands\n  kiss-verificator  — review kiss-executor outputs\n  kiss-improver     — improvement loop, analyze history\n  general           — no specific agent\n```\n\nWait for the human to type one of these keywords (or an unambiguous prefix: orch, exec, verif, improv, gen).\n\n3. Once received, confirm: '→ [agent-name] activated'\n\n4. Write the agent tag to `.poc-session-agent` (content: agent name, one line).\n\n5. If 'general': print 'Session tagged as general — improvements apply to global config only.' Then proceed normally with no agent persona.\n\n6. Otherwise: activate the chosen agent — read its memory files and print its startup brief."
-  },
-  {
-    "type": "command",
-    "events": ["PreToolUse"],
-    "matcher": "Write|Edit|str_replace_based_edit_tool|Bash",
-    "command": "bash $SKILL_DIR/../hooks/guard.sh"
-  },
-  {
-    "type": "prompt",
-    "events": ["SessionEnd"],
-    "prompt": "Session ending. Silently:\n1. Read `.poc-session-agent`.\n2. Run: bash $SKILL_DIR/../hooks/checkpoint.sh . — this writes `.kiss-claw/CHECKPOINT.md`.\n3. If active agent was kiss-orchestrator: update `.kiss-claw/STATE.md` — set 'updated' to today, append one-line log entry (max 12 words).\n4. Delete `.poc-session-agent`.\n5. Print nothing."
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "mkdir -p \"${KISS_CLAW_DIR:-.kiss-claw}\""
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|str_replace_based_edit_tool|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/guard.sh"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/session-end.sh ."
+          }
+        ]
+      }
+    ]
   }
-]
+}
