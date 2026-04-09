@@ -39,8 +39,9 @@ SessionEnd hook  écrit CHECKPOINT.md + update STATE.md log
 
 ```bash
 git clone <url-du-repo> ~/.claude/plugins/kiss-claw
-cp ~/.claude/plugins/kiss-claw/MEMORY.md.template ./MEMORY.md
-# Remplir MEMORY.md : nom projet, stack, non-goals
+mkdir -p .kiss-claw
+cp ~/.claude/plugins/kiss-claw/MEMORY.md.template .kiss-claw/MEMORY.md
+# Remplir .kiss-claw/MEMORY.md : nom projet, stack, non-goals
 ```
 
 Dans `.claude/settings.json` :
@@ -50,25 +51,41 @@ Dans `.claude/settings.json` :
 }
 ```
 
+### Dossier de sortie personnalisé
+
+Par défaut, tous les fichiers d'état kiss-claw sont stockés dans `.kiss-claw/` à la racine du projet.
+Pour surcharger ce chemin, créez `.claude/settings.local.json` (gitignored, personnel) :
+
+```json
+{
+  "envVars": {
+    "KISS_CLAW_DIR": "mon/chemin/custom"
+  }
+}
+```
+
+Les hooks et agents utiliseront ce chemin au lieu de `.kiss-claw/`.
+
 ---
 
 ## Fichiers projet
 
 ```
 ton-projet/
-├── PLAN.md                  ← roadmap (orchestrator)
-├── STATE.md                 ← état courant + mode + token_budget (orchestrator)
-├── CHECKPOINT.md            ← snapshot pré-compact (hooks auto)
-├── MEMORY.md                ← contexte partagé
-├── MEMORY_orchestrator.md   ┐
-├── MEMORY_executor.md       ├─ mémoire privée par agent
-├── MEMORY_verificator.md    │
-├── MEMORY_analyzer.md       ┘
-├── INSIGHTS.md              ← proposals d'amélioration (analyzer)
-├── ANALYZED.md              ← index sessions + token stats (analyzer)
-├── TOKEN_STATS.md           ← ledger conso tokens (analyzer)
-├── REVIEWS.md               ← rapports review executor (verificator)
-└── SCRATCH.md               ← notes volatiles
+└── .kiss-claw/                  ← tous les fichiers d'état (configurable via KISS_CLAW_DIR)
+    ├── PLAN.md                  ← roadmap (orchestrator)
+    ├── STATE.md                 ← état courant + mode + token_budget (orchestrator)
+    ├── CHECKPOINT.md            ← snapshot pré-compact (hooks auto)
+    ├── MEMORY.md                ← contexte partagé
+    ├── MEMORY_orchestrator.md   ┐
+    ├── MEMORY_executor.md       ├─ mémoire privée par agent
+    ├── MEMORY_verificator.md    │
+    ├── MEMORY_analyzer.md       ┘
+    ├── INSIGHTS.md              ← proposals d'amélioration (analyzer)
+    ├── ANALYZED.md              ← index sessions + token stats (analyzer)
+    ├── TOKEN_STATS.md           ← ledger conso tokens (analyzer)
+    ├── REVIEWS.md               ← rapports review executor (verificator)
+    └── SCRATCH.md               ← notes volatiles
 ```
 
 ---
@@ -80,13 +97,13 @@ Toute tentative d'un autre agent est bloquée avant exécution :
 
 | Fichier | Propriétaire |
 |---------|-------------|
-| `PLAN.md` | orchestrator |
-| `STATE.md` | orchestrator |
-| `MEMORY.md` | analyzer (via apply) |
-| `ANALYZED.md` | analyzer |
-| `INSIGHTS.md` | analyzer |
-| `TOKEN_STATS.md` | analyzer |
-| `CHECKPOINT.md` | hook SessionEnd |
+| `.kiss-claw/PLAN.md` | orchestrator |
+| `.kiss-claw/STATE.md` | orchestrator |
+| `.kiss-claw/MEMORY.md` | analyzer (via apply) |
+| `.kiss-claw/ANALYZED.md` | analyzer |
+| `.kiss-claw/INSIGHTS.md` | analyzer |
+| `.kiss-claw/TOKEN_STATS.md` | analyzer |
+| `.kiss-claw/CHECKPOINT.md` | hook SessionEnd |
 
 ---
 

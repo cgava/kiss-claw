@@ -17,9 +17,9 @@ that ran the session — or to global config if the session was untagged (genera
 
 ## Memory
 
-Your `MEMORY.md` (auto-loaded) contains shared project context.
+Your `.kiss-claw/MEMORY.md` (auto-loaded) contains shared project context.
 
-Your `MEMORY_analyzer.md` contains analyzer-specific learnings:
+Your `.kiss-claw/MEMORY_analyzer.md` contains analyzer-specific learnings:
 - Signal patterns that reliably indicate friction (high signal-to-noise)
 - Signal patterns that turned out to be false positives (suppress these)
 - Proposal patterns that were consistently accepted or rejected
@@ -28,11 +28,11 @@ Your `MEMORY_analyzer.md` contains analyzer-specific learnings:
 
 | File | Purpose |
 |------|---------|
-| `ANALYZED.md`     | Index of analyzed sessions with agent tag, digest, token stats |
-| `INSIGHTS.md`     | Structured proposals with status lifecycle |
-| `TOKEN_STATS.md`  | Running token consumption ledger across all sessions |
+| `.kiss-claw/ANALYZED.md`     | Index of analyzed sessions with agent tag, digest, token stats |
+| `.kiss-claw/INSIGHTS.md`     | Structured proposals with status lifecycle |
+| `.kiss-claw/TOKEN_STATS.md`  | Running token consumption ledger across all sessions |
 
-Read-only access to all agent files, PLAN.md, STATE.md, REVIEWS.md, CLAUDE.md, MEMORY*.md.
+Read-only access to all agent files, `.kiss-claw/PLAN.md`, `.kiss-claw/STATE.md`, `.kiss-claw/REVIEWS.md`, `CLAUDE.md`, `.kiss-claw/MEMORY*.md`.
 
 ---
 
@@ -45,11 +45,11 @@ ls ~/.claude/projects/$(basename $(pwd) | shasum -a 256 | cut -c1-8)*/*.jsonl 2>
   || ls ~/.claude/projects/ 2>/dev/null
 ```
 
-Read `ANALYZED.md`. Compute digest for each transcript:
+Read `.kiss-claw/ANALYZED.md`. Compute digest for each transcript:
 ```bash
 head -c 200 <file> | sha1sum | cut -c1-8
 ```
-Skip any session whose `(session-id, digest)` pair already appears in ANALYZED.md.
+Skip any session whose `(session-id, digest)` pair already appears in `.kiss-claw/ANALYZED.md`.
 
 If nothing new → print "Nothing new to analyze." and stop.
 
@@ -94,7 +94,7 @@ Record per session:
 - `total_tokens` — input + output
 - `turns` — number of human messages (proxy for session length)
 - `tokens_per_turn` — output_tokens / turns (efficiency: lower = less back-and-forth)
-- `budget_status` — compare total_tokens / turns against STATE.md `token_budget.per_step`:
+- `budget_status` — compare total_tokens / turns against `.kiss-claw/STATE.md` `token_budget.per_step`:
   - `ok` if below `per_step`
   - `warn` if above `warn_at`
   - `over` if above `per_step`
@@ -102,7 +102,7 @@ Record per session:
 If the transcript format doesn't expose token counts, estimate from character count
 (`~4 chars ≈ 1 token`) and mark values with `~` prefix.
 
-Also compute running totals and append to `TOKEN_STATS.md` (see format below).
+Also compute running totals and append to `.kiss-claw/TOKEN_STATS.md` (see format below).
 
 
 ### Step 3 — Extract signals per session
@@ -120,24 +120,24 @@ Also compute running totals and append to `TOKEN_STATS.md` (see format below).
 - Commands or workflows the human invented not yet in any agent file
 
 **Config gap signals**:
-- Agent asking for info that should be in its MEMORY file
-- Agent ignoring a constraint → candidate for `MEMORY_<agent>.md`
+- Agent asking for info that should be in its `.kiss-claw/MEMORY` file
+- Agent ignoring a constraint → candidate for `.kiss-claw/MEMORY_<agent>.md`
 - Agent choosing wrong tech/pattern corrected by human or verificator
 
 ### Step 4 — Scope proposals by session type
 
 | Session agent | Allowed targets |
 |--------------|-----------------|
-| `orchestrator` | `agent:orchestrator`, `MEMORY_orchestrator.md`, `PLAN.md` |
-| `executor` | `agent:executor`, `MEMORY_executor.md`, `CLAUDE.md` |
-| `verificator` | `agent:verificator`, `MEMORY_verificator.md` |
-| `analyzer` | `agent:analyzer`, `MEMORY_analyzer.md` |
-| `general` | `CLAUDE.md`, `MEMORY.md`, `settings.json` only — never agent files |
+| `orchestrator` | `agent:orchestrator`, `.kiss-claw/MEMORY_orchestrator.md`, `.kiss-claw/PLAN.md` |
+| `executor` | `agent:executor`, `.kiss-claw/MEMORY_executor.md`, `CLAUDE.md` |
+| `verificator` | `agent:verificator`, `.kiss-claw/MEMORY_verificator.md` |
+| `analyzer` | `agent:analyzer`, `.kiss-claw/MEMORY_analyzer.md` |
+| `general` | `CLAUDE.md`, `.kiss-claw/MEMORY.md`, `settings.json` only — never agent files |
 
 A proposal targeting an agent file from a `general` session is a scoping violation. Flag it
 as `low` confidence and note the violation in the fact.
 
-### Step 5 — Write to INSIGHTS.md
+### Step 5 — Write to .kiss-claw/INSIGHTS.md
 
 Append new entries only. One entry per atomic finding. Format:
 
@@ -147,7 +147,7 @@ Append new entries only. One entry per atomic finding. Format:
 - **session**   : <session-id>
 - **session-agent** : orchestrator | executor | verificator | analyzer | general
 - **date**      : <YYYY-MM-DD>
-- **target**    : <agent:name | CLAUDE.md | MEMORY.md | MEMORY_<agent>.md | settings.json>
+- **target**    : <agent:name | CLAUDE.md | .kiss-claw/MEMORY.md | .kiss-claw/MEMORY_<agent>.md | settings.json>
 - **type**      : fact | proposal
 - **confidence**: high | medium | low
 - **status**    : proposed
@@ -164,7 +164,7 @@ Append new entries only. One entry per atomic finding. Format:
 <empty>
 ```
 
-### Step 6 — Update ANALYZED.md
+### Step 6 — Update .kiss-claw/ANALYZED.md
 
 ```markdown
 | session-id | agent | date | lines | digest | input_tok | output_tok | turns | tpt | budget |
@@ -174,9 +174,9 @@ Append new entries only. One entry per atomic finding. Format:
 
 `tpt` = tokens_per_turn (output_tokens / turns). Lower = more efficient sessions.
 
-### Step 6.5 — Append to TOKEN_STATS.md
+### Step 6.5 — Append to .kiss-claw/TOKEN_STATS.md
 
-`TOKEN_STATS.md` is a running ledger across all sessions. Append one row per analyzed session,
+`.kiss-claw/TOKEN_STATS.md` is a running ledger across all sessions. Append one row per analyzed session,
 then recompute the summary block at the top:
 
 ```markdown
@@ -201,7 +201,7 @@ then recompute the summary block at the top:
 `top_cost_driver` = brief note on why this session was expensive (optional, analyzer's judgment):
 examples: "large context re-read", "many corrections", "long bash output", "n/a"
 
-If TOKEN_STATS.md doesn't exist yet, create it with the header and first row.
+If `.kiss-claw/TOKEN_STATS.md` doesn't exist yet, create it with the header and first row.
 
 ### Step 7 — Print summary
 
@@ -216,7 +216,7 @@ Token consumption (new sessions):
   Total tokens   : N
   Avg tpt        : N  (lower = more efficient)
   Budget status  : ok: N / warn: N / over: N
-  See TOKEN_STATS.md for full history
+  See .kiss-claw/TOKEN_STATS.md for full history
 
 Run /insights to review proposals
 =========================
@@ -226,7 +226,7 @@ Run /insights to review proposals
 
 ## /tokens command
 
-Read TOKEN_STATS.md and print a compact report:
+Read `.kiss-claw/TOKEN_STATS.md` and print a compact report:
 
 ```
 === TOKEN CONSUMPTION ===
@@ -246,7 +246,7 @@ Most expensive session: <date> <agent> — N tokens (<driver>)
 =========================
 ```
 
-If TOKEN_STATS.md doesn't exist: "No token data yet — run /analyze first."
+If `.kiss-claw/TOKEN_STATS.md` doesn't exist: "No token data yet — run /analyze first."
 
 Optionally, the human can ask for a trend: "tokens trend" → print the last 10 sessions
 sorted by date showing total_tok and tpt to spot drift (context bloat, efficiency loss).
@@ -296,11 +296,11 @@ Responses:
    ```
 5. Ask: "Apply? (yes / edit / cancel)"
 6. On confirm: write file, set status to `applied`, add `applied_at: YYYY-MM-DD` field,
-   notify orchestrator to log it in STATE.md `accepted_insights`.
+   notify orchestrator to log it in `.kiss-claw/STATE.md` `accepted_insights`.
 
 ---
 
 ## Archive rule
 
-When INSIGHTS.md exceeds 300 lines: move all `applied` and `rejected` entries to
-`INSIGHTS_ARCHIVE.md`, keep only `proposed`, `accepted`, and `deferred`.
+When `.kiss-claw/INSIGHTS.md` exceeds 300 lines: move all `applied` and `rejected` entries to
+`.kiss-claw/INSIGHTS_ARCHIVE.md`, keep only `proposed`, `accepted`, and `deferred`.

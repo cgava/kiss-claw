@@ -9,6 +9,8 @@ FILE="${CLAUDE_TOOL_INPUT_PATH:-}"
 # Also catch bash commands that write to protected files
 BASH_CMD="${CLAUDE_TOOL_INPUT_COMMAND:-}"
 
+KC_DIR="${KISS_CLAW_DIR:-.kiss-claw}"
+
 PROTECTED=(
   "PLAN.md"
   "MEMORY.md"
@@ -25,8 +27,8 @@ FILE="${FILE#./}"
 check_protected() {
   local target="$1"
   for f in "${PROTECTED[@]}"; do
-    if [[ "$target" == "$f" || "$target" == *"/$f" ]]; then
-      echo "BLOCK: $f is a protected file. Only its owning agent may write to it."
+    if [[ "$target" == "$f" || "$target" == *"/$f" || "$target" == "$KC_DIR/$f" || "$target" == *"/$KC_DIR/$f" ]]; then
+      echo "BLOCK: $KC_DIR/$f is a protected file. Only its owning agent may write to it."
       echo "  Owning agents: PLAN.md→orchestrator, MEMORY.md→analyzer, STATE.md→orchestrator, ANALYZED.md+INSIGHTS.md→analyzer"
       exit 1
     fi
@@ -41,8 +43,8 @@ fi
 # Check bash commands that redirect into protected files
 if [[ "$TOOL" == "Bash" && -n "$BASH_CMD" ]]; then
   for f in "${PROTECTED[@]}"; do
-    if echo "$BASH_CMD" | grep -qE "(>|>>)\s*\.?/?${f}(\s|$)"; then
-      echo "BLOCK: bash command attempts to write to protected file $f."
+    if echo "$BASH_CMD" | grep -qE "(>|>>)\s*\.?/?(${KC_DIR}/)?${f}(\s|$)"; then
+      echo "BLOCK: bash command attempts to write to protected file $KC_DIR/$f."
       exit 1
     fi
   done

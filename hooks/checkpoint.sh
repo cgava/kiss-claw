@@ -3,12 +3,15 @@
 # Usage: called by the SessionEnd hook or manually via /compact
 
 PROJECT_DIR="${1:-.}"
+KC_DIR="${KISS_CLAW_DIR:-.kiss-claw}"
 DATE=$(date +%Y-%m-%d)
 TIME=$(date +%H:%M)
 
-STATE_FILE="$PROJECT_DIR/STATE.md"
-PLAN_FILE="$PROJECT_DIR/PLAN.md"
-OUT="$PROJECT_DIR/CHECKPOINT.md"
+mkdir -p "$PROJECT_DIR/$KC_DIR"
+
+STATE_FILE="$PROJECT_DIR/$KC_DIR/STATE.md"
+PLAN_FILE="$PROJECT_DIR/$KC_DIR/PLAN.md"
+OUT="$PROJECT_DIR/$KC_DIR/CHECKPOINT.md"
 
 echo "# CHECKPOINT — $DATE $TIME" > "$OUT"
 echo "" >> "$OUT"

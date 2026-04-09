@@ -39,8 +39,9 @@ SessionEnd hook  writes CHECKPOINT.md + updates STATE.md log
 
 ```bash
 git clone <repo-url> ~/.claude/plugins/kiss-claw
-cp ~/.claude/plugins/kiss-claw/MEMORY.md.template ./MEMORY.md
-# Fill MEMORY.md: project name, stack, non-goals
+mkdir -p .kiss-claw
+cp ~/.claude/plugins/kiss-claw/MEMORY.md.template .kiss-claw/MEMORY.md
+# Fill .kiss-claw/MEMORY.md: project name, stack, non-goals
 ```
 
 In `.claude/settings.json`:
@@ -50,25 +51,41 @@ In `.claude/settings.json`:
 }
 ```
 
+### Custom output directory
+
+By default, all kiss-claw state files are stored in `.kiss-claw/` at the project root.
+To override this, create `.claude/settings.local.json` (gitignored, personal to you):
+
+```json
+{
+  "envVars": {
+    "KISS_CLAW_DIR": "my/custom/path"
+  }
+}
+```
+
+The hooks and agents will use this path instead of `.kiss-claw/`.
+
 ---
 
 ## Project Files
 
 ```
 your-project/
-├── PLAN.md                  ← roadmap (orchestrator)
-├── STATE.md                 ← current state + mode + token_budget (orchestrator)
-├── CHECKPOINT.md            ← pre-compact snapshot (auto hooks)
-├── MEMORY.md                ← shared context
-├── MEMORY_orchestrator.md   ┐
-├── MEMORY_executor.md       ├─ private memory per agent
-├── MEMORY_verificator.md    │
-├── MEMORY_analyzer.md       ┘
-├── INSIGHTS.md              ← improvement proposals (analyzer)
-├── ANALYZED.md              ← session index + token stats (analyzer)
-├── TOKEN_STATS.md           ← token consumption ledger (analyzer)
-├── REVIEWS.md               ← executor review reports (verificator)
-└── SCRATCH.md               ← volatile notes
+└── .kiss-claw/                  ← all state files (configurable via KISS_CLAW_DIR)
+    ├── PLAN.md                  ← roadmap (orchestrator)
+    ├── STATE.md                 ← current state + mode + token_budget (orchestrator)
+    ├── CHECKPOINT.md            ← pre-compact snapshot (auto hooks)
+    ├── MEMORY.md                ← shared context
+    ├── MEMORY_orchestrator.md   ┐
+    ├── MEMORY_executor.md       ├─ private memory per agent
+    ├── MEMORY_verificator.md    │
+    ├── MEMORY_analyzer.md       ┘
+    ├── INSIGHTS.md              ← improvement proposals (analyzer)
+    ├── ANALYZED.md              ← session index + token stats (analyzer)
+    ├── TOKEN_STATS.md           ← token consumption ledger (analyzer)
+    ├── REVIEWS.md               ← executor review reports (verificator)
+    └── SCRATCH.md               ← volatile notes
 ```
 
 ---
@@ -80,13 +97,13 @@ Any attempt by another agent is blocked before execution:
 
 | File | Owner |
 |------|-------|
-| `PLAN.md` | orchestrator |
-| `STATE.md` | orchestrator |
-| `MEMORY.md` | analyzer (via apply) |
-| `ANALYZED.md` | analyzer |
-| `INSIGHTS.md` | analyzer |
-| `TOKEN_STATS.md` | analyzer |
-| `CHECKPOINT.md` | SessionEnd hook |
+| `.kiss-claw/PLAN.md` | orchestrator |
+| `.kiss-claw/STATE.md` | orchestrator |
+| `.kiss-claw/MEMORY.md` | analyzer (via apply) |
+| `.kiss-claw/ANALYZED.md` | analyzer |
+| `.kiss-claw/INSIGHTS.md` | analyzer |
+| `.kiss-claw/TOKEN_STATS.md` | analyzer |
+| `.kiss-claw/CHECKPOINT.md` | SessionEnd hook |
 
 ---
 
