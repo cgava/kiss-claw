@@ -1,5 +1,7 @@
 # kiss-claw
 
+Keep It Simple, Stupid ! The simplest yet ambitious Claude AI harness for code. Stupidly efficient.
+
 Multi-agent Claude Code plugin with persistent state, continuous improvement loop,
 checkpointing, dry-run, critical file protection, and token consumption tracking.
 Zero external dependencies.
@@ -37,34 +39,48 @@ SessionEnd hook  writes CHECKPOINT.md + updates STATE.md log
 
 ## Installation
 
+### From marketplace
+
 ```bash
-git clone <repo-url> ~/.claude/plugins/kiss-claw
-mkdir -p .kiss-claw
-cp ~/.claude/plugins/kiss-claw/MEMORY.md.template .kiss-claw/MEMORY.md
-# Fill .kiss-claw/MEMORY.md: project name, stack, non-goals
+# Add the marketplace (once)
+/plugin marketplace add cedricmusic/kiss-claw
+
+# Install
+claude plugin install kiss-claw@kiss-claw
 ```
 
-In `.claude/settings.json`:
-```json
-{
-  "plugins": [{ "type": "local", "path": "~/.claude/plugins/kiss-claw" }]
-}
+### Init a project
+
+```bash
+cd your-project
+~/.claude/plugins/kiss-claw/scripts/init.sh
+# Edit .kiss-claw/MEMORY.md with your project info
+```
+
+### Dev mode
+
+```bash
+# Load the plugin directly from your local clone
+claude --plugin-dir /path/to/kiss-claw
+
+# Reload after changes without restarting
+/reload-plugins
 ```
 
 ### Custom output directory
 
-By default, all kiss-claw state files are stored in `.kiss-claw/` at the project root.
-To override this, create `.claude/settings.local.json` (gitignored, personal to you):
+By default, state files live in `.kiss-claw/` at project root.
+Override via `.claude/settings.local.json`:
 
 ```json
-{
-  "envVars": {
-    "KISS_CLAW_DIR": "my/custom/path"
-  }
-}
+{ "envVars": { "KISS_CLAW_DIR": "my/custom/path" } }
 ```
 
-The hooks and agents will use this path instead of `.kiss-claw/`.
+### Uninstall
+
+```bash
+claude plugin uninstall kiss-claw@kiss-claw
+```
 
 ---
 

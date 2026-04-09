@@ -4,6 +4,8 @@ Plugin Claude Code multi-agent avec état persistant, boucle d'amélioration con
 checkpointing, dry-run, protection des fichiers critiques, et suivi de consommation tokens.
 Zéro dépendance externe.
 
+Keep It Simple, Stupid ! The simplest yet ambitious Claude AI harness for code. Stupidly efficient.
+
 ---
 
 ## Nouveautés v5
@@ -37,34 +39,48 @@ SessionEnd hook  écrit CHECKPOINT.md + update STATE.md log
 
 ## Installation
 
+### Depuis la marketplace
+
 ```bash
-git clone <url-du-repo> ~/.claude/plugins/kiss-claw
-mkdir -p .kiss-claw
-cp ~/.claude/plugins/kiss-claw/MEMORY.md.template .kiss-claw/MEMORY.md
-# Remplir .kiss-claw/MEMORY.md : nom projet, stack, non-goals
+# Ajouter la marketplace (une fois)
+/plugin marketplace add cgava/kiss-claw
+
+# Installer
+claude plugin install kiss-claw@kiss-claw
 ```
 
-Dans `.claude/settings.json` :
-```json
-{
-  "plugins": [{ "type": "local", "path": "~/.claude/plugins/kiss-claw" }]
-}
+### Init d'un projet
+
+```bash
+cd mon-projet
+~/.claude/plugins/kiss-claw/scripts/init.sh
+# Éditer .kiss-claw/MEMORY.md avec les infos du projet
+```
+
+### Mode dev
+
+```bash
+# Charger le plugin directement depuis votre clone local
+claude --plugin-dir /chemin/vers/kiss-claw
+
+# Recharger après modifs sans redémarrer
+/reload-plugins
 ```
 
 ### Dossier de sortie personnalisé
 
-Par défaut, tous les fichiers d'état kiss-claw sont stockés dans `.kiss-claw/` à la racine du projet.
-Pour surcharger ce chemin, créez `.claude/settings.local.json` (gitignored, personnel) :
+Par défaut, les fichiers d'état vivent dans `.kiss-claw/` à la racine du projet.
+Surcharger via `.claude/settings.local.json` :
 
 ```json
-{
-  "envVars": {
-    "KISS_CLAW_DIR": "mon/chemin/custom"
-  }
-}
+{ "envVars": { "KISS_CLAW_DIR": "mon/chemin/custom" } }
 ```
 
-Les hooks et agents utiliseront ce chemin au lieu de `.kiss-claw/`.
+### Désinstallation
+
+```bash
+claude plugin uninstall kiss-claw@kiss-claw
+```
 
 ---
 

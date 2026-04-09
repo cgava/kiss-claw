@@ -1,5 +1,8 @@
 {
   "name": "kiss-claw",
-  "version": "5.0.0",
-  "description": "Stateful multi-agent POC harness: routing, improvement loop, checkpointing, dry-run, file guard, token tracking."
+  "version": "5.1.0",
+  "description": "The simplest yet ambitious Claude AI harness for code. Stupidly efficient.",
+  "repository": "https://github.com/ccgava/kiss-claw",
+  "license": "MIT",
+  "keywords": ["harness","simple","multi-agent","improvement-loop"]
 }
