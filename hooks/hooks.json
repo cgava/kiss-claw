@@ -1,0 +1,12 @@
+[
+  {
+    "type": "prompt",
+    "events": ["SessionStart"],
+    "prompt": "Session starting. Before anything else, do the following in order:\n\n1. Read the first human message of this session (the prompt that triggered the session).\n\n2. Infer which agent it most likely targets:\n   - Planning, phase tracking, 'what's next', step management → orchestrator\n   - Implementation, code, files, commands, 'build', 'write', 'fix' → executor\n   - Review, check, validate, 'is this correct' → verificator\n   - Analyze history, improvement loop, insights → analyzer\n   - Unclear or general (no agent signal) → ask\n\n3. If inference is clear (high confidence): print one line:\n   '→ routing to [agent-name] (change? reply with: orchestrator / executor / verificator / analyzer / general)'\n   Then immediately activate that agent's persona and print its startup brief.\n\n4. If inference is unclear: print:\n   '→ Which agent should handle this?\n      [1] orchestrator — planning & state\n      [2] executor     — implementation\n      [3] verificator  — review\n      [4] analyzer     — improvement loop\n      [5] general      — no specific agent'\n   Wait for the human's reply before doing anything else.\n\n5. Once agent is confirmed, tag the session internally:\n   Write a one-line file `.poc-session-agent` with content: `<agent-name>`\n   This lets the analyzer identify which agent ran this session.\n\n6. If the human chose 'general' or '5': print:\n   'Session tagged as general. Notes and improvements will apply to global config only (CLAUDE.md, MEMORY.md, settings.json) — not to individual agents.'\n   Then proceed as a normal Claude session with no specific agent persona."
+  },
+  {
+    "type": "prompt",
+    "events": ["SessionEnd"],
+    "prompt": "Session ending. Silently:\n1. Read `.poc-session-agent` to get the agent tag for this session.\n2. If the active agent was orchestrator: update STATE.md — set 'updated' to today, append a one-line log entry (max 12 words) summarising what was done.\n3. Delete `.poc-session-agent` (it's per-session only).\n4. Print nothing."
+  }
+]

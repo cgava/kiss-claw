@@ -1,0 +1,79 @@
+# MEMORY_orchestrator.md
+
+> Orchestrator-specific learnings. Auto-loaded by orchestrator agent.
+> Updated when durable patterns are identified. Keep under 60 lines.
+
+## Phase patterns that worked well
+
+<!-- Example: "2-step phases are better than 5-step — easier to verify" -->
+
+## Recurring blocker types
+
+<!-- Example: "env setup always blocks phase 1 — add it as step 0 next time" -->
+
+## Task split heuristics
+
+<!-- How to divide work across executor/verificator for this project -->
+
+---
+# MEMORY_executor.md
+
+> Executor-specific learnings. Auto-loaded by executor agent.
+> Updated when verificator flags recurring mistakes, or human corrects same thing twice.
+> Keep under 60 lines.
+
+## Stack constraints (hard rules)
+
+<!-- Example: "ORM: SQLAlchemy 2.x — never suggest alternatives" -->
+
+## File conventions
+
+<!-- Naming, structure, placement rules enforced in this project -->
+
+## Commands that failed / workarounds
+
+<!-- Example: "pytest --tb=short breaks CI — use pytest -q instead" -->
+
+## Never do (flagged by verificator)
+
+<!-- Mistakes found more than once -->
+
+---
+# MEMORY_verificator.md
+
+> Verificator-specific learnings. Auto-loaded by verificator agent.
+> Keep under 60 lines.
+
+## Recurring issues in executor output
+
+<!-- Patterns worth checking proactively, by category -->
+
+## Plan anti-patterns seen in this project
+
+<!-- Steps that repeatedly needed rework -->
+
+## Quality criteria emphasized by human
+
+<!-- Things the human has called out more than once during reviews -->
+
+## Proposal patterns (from analyzer reviews)
+
+<!-- Proposals that were consistently accepted or rejected, and why -->
+
+---
+# MEMORY_analyzer.md
+
+> Analyzer-specific learnings. Auto-loaded by analyzer agent.
+> Keep under 60 lines.
+
+## High-signal friction patterns (reliable)
+
+<!-- Transcript signals that reliably indicate a real problem -->
+
+## False positive patterns (suppress)
+
+<!-- Signals that looked like friction but weren't — ignore these -->
+
+## Proposal patterns
+
+<!-- Types of proposals that were accepted vs rejected, by target file -->

@@ -1,0 +1,36 @@
+# MEMORY.md — shared project context
+
+> Auto-loaded by all agents. Keep under 200 lines.
+> Edit manually or via analyzer apply protocol.
+
+## Project
+
+- **Name**: <project name>
+- **Goal**: <one sentence>
+- **Status**: <phase N / step>
+
+## Tech stack
+
+<!-- Add constraints here. Example:
+- Language: Python 3.12+
+- Framework: FastAPI
+- ORM: SQLAlchemy 2.x
+- Tests: pytest
+-->
+
+## Non-goals
+
+<!-- Things explicitly out of scope -->
+
+## Agents in use
+
+- orchestrator — planning and state
+- executor — implementation
+- verificator — reviews
+- analyzer — improvement loop
+
+## Key decisions
+
+<!-- Log irreversible decisions here so agents don't re-debate them.
+Format: YYYY-MM-DD — <decision> — <reason>
+-->
