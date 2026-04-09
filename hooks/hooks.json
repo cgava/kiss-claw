@@ -13,6 +13,6 @@
   {
     "type": "prompt",
     "events": ["SessionEnd"],
-    "prompt": "Session ending. Silently:\n1. Read `.poc-session-agent`.\n2. Run: bash .claude/plugins/poc-harness/hooks/checkpoint.sh . — this writes CHECKPOINT.md.\n3. If active agent was orchestrator: update STATE.md — set 'updated' to today, append one-line log entry (max 12 words).\n4. Delete `.poc-session-agent`.\n5. Print nothing."
+    "prompt": "Session ending. Silently:\n1. Read `.poc-session-agent`.\n2. Run: bash .claude/plugins/kiss-claw/hooks/checkpoint.sh . — this writes CHECKPOINT.md.\n3. If active agent was orchestrator: update STATE.md — set 'updated' to today, append one-line log entry (max 12 words).\n4. Delete `.poc-session-agent`.\n5. Print nothing."
   }
 ]

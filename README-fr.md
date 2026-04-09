@@ -1,4 +1,4 @@
-# poc-harness v5
+# kiss-claw v5
 
 Plugin Claude Code multi-agent avec état persistant, boucle d'amélioration continue,
 checkpointing, dry-run, protection des fichiers critiques, et suivi de consommation tokens.
@@ -38,15 +38,15 @@ SessionEnd hook  écrit CHECKPOINT.md + update STATE.md log
 ## Installation
 
 ```bash
-tar xzf poc-harness-v5.tar.gz -C ~/.claude/plugins/
-cp ~/.claude/plugins/poc-harness-v5/MEMORY.md.template ./MEMORY.md
+git clone <url-du-repo> ~/.claude/plugins/kiss-claw
+cp ~/.claude/plugins/kiss-claw/MEMORY.md.template ./MEMORY.md
 # Remplir MEMORY.md : nom projet, stack, non-goals
 ```
 
 Dans `.claude/settings.json` :
 ```json
 {
-  "plugins": [{ "type": "local", "path": "~/.claude/plugins/poc-harness-v5" }]
+  "plugins": [{ "type": "local", "path": "~/.claude/plugins/kiss-claw" }]
 }
 ```
 

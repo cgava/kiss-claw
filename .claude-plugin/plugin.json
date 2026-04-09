@@ -1,5 +1,5 @@
 {
-  "name": "poc-harness",
+  "name": "kiss-claw",
   "version": "5.0.0",
   "description": "Stateful multi-agent POC harness: routing, improvement loop, checkpointing, dry-run, file guard, token tracking."
 }
