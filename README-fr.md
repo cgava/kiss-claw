@@ -1,4 +1,4 @@
-# kiss-claw v5
+# kiss-claw
 
 Plugin Claude Code multi-agent avec état persistant, boucle d'amélioration continue,
 checkpointing, dry-run, protection des fichiers critiques, et suivi de consommation tokens.
