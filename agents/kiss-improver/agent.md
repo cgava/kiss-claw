@@ -65,6 +65,26 @@ Classify each session as one of:
 
 `general` = no agent identified, or the human explicitly said "none" at routing prompt.
 
+### Step 2.1 — Load the agent definition
+
+For each session where an agent was identified (not `general`), read the corresponding
+agent file:
+
+```bash
+cat agents/kiss-<agent>/agent.md
+```
+
+Extract and keep in working memory:
+- **description** — the `description:` field from frontmatter (what the agent is for)
+- **constraints** — explicit rules, "never do X", "always do Y", allowed/forbidden actions
+- **expected workflow** — the step-by-step protocol the agent is supposed to follow
+- **owned files** — files the agent reads/writes
+
+This agent definition becomes the **reference lens** for Step 3: signals are evaluated
+against what the agent is *supposed* to do, not just what it *did* do.
+
+For `general` sessions, skip this step — there is no agent definition to load.
+
 ### Step 2.5 — Extract token consumption for each session
 
 Claude Code transcripts (`.jsonl`) include token usage metadata per message.
@@ -107,6 +127,10 @@ Also compute running totals and append to `.kiss-claw/TOKEN_STATS.md` (see forma
 
 ### Step 3 — Extract signals per session
 
+Use the agent definition loaded in Step 2.1 as reference lens. For each signal, evaluate
+whether the observed behavior aligns with or deviates from the agent's defined purpose,
+constraints, and workflow.
+
 **Friction signals** (things that slowed the agent down):
 - Repeated clarification requests on the same topic
 - The human correcting output multiple times in a row
@@ -123,6 +147,14 @@ Also compute running totals and append to `.kiss-claw/TOKEN_STATS.md` (see forma
 - Agent asking for info that should be in its `.kiss-claw/MEMORY` file
 - Agent ignoring a constraint → candidate for `.kiss-claw/MEMORY_<agent>.md`
 - Agent choosing wrong tech/pattern corrected by human or kiss-verificator
+
+**Scope drift signals** (agent vs. its definition):
+- Agent performing actions outside its described purpose (e.g. executor self-reviewing)
+- Agent skipping steps defined in its workflow protocol
+- Agent ignoring constraints listed in its definition
+- Recurring patterns in transcripts not covered by the agent prompt — candidates for
+  adding to the agent's `agent.md`
+- Agent description too vague or too narrow vs. actual observed usage
 
 ### Step 4 — Scope proposals by session type
 
