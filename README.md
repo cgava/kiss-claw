@@ -1,4 +1,4 @@
-# poc-harness v3
+# poc-harness v4
 
 Plugin Claude Code multi-agent avec état persistant et boucle d'amélioration continue.
 Zéro dépendance. Tout vit dans des fichiers markdown dans le repo.
@@ -8,24 +8,28 @@ Zéro dépendance. Tout vit dans des fichiers markdown dans le repo.
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────┐
-│              SessionStart hook              │
-│  Infère l'agent → confirme → tag session    │
-└──────────┬──────────────────────────────────┘
+┌─────────────────────────────────────────┐
+│           SessionStart hook             │
+│  Affiche le menu → attend un mot clé   │
+│  Tag la session avec l'agent choisi     │
+└──────────┬──────────────────────────────┘
            │
     ┌──────▼──────┐
     │ orchestrator │  planifie, tient STATE.md, délègue
     └──────┬──────┘
-           │ délègue
+           │ délègue les tâches
     ┌──────▼──────┐     ┌─────────────┐
-    │   executor  │────▶│ verificator │  review outputs,
-    │ implémente  │     │  plans, INS │  plans, proposals
-    └─────────────┘     └──────┬──────┘
-                               │ informe
+    │   executor  │────▶│ verificator │  review outputs
+    │ implémente  │     │ executor    │  uniquement
+    └─────────────┘     └─────────────┘
+                               │ informe orchestrator
                         ┌──────▼──────┐
                         │   analyzer  │  analyse transcripts
-                        │ améliore    │  propose → INSIGHTS.md
+                        │             │  → INSIGHTS.md
                         └─────────────┘
+                               │
+                          humain décide
+                         accept/reject/apply
 ```
 
 ---
@@ -33,48 +37,48 @@ Zéro dépendance. Tout vit dans des fichiers markdown dans le repo.
 ## Installation
 
 ```bash
-tar xzf poc-harness-v3.tar.gz -C ~/.claude/plugins/
+tar xzf poc-harness-v4.tar.gz -C ~/.claude/plugins/
 ```
 
 Dans `.claude/settings.json` du projet :
 ```json
 {
   "plugins": [
-    { "type": "local", "path": "~/.claude/plugins/poc-harness-v3" }
+    { "type": "local", "path": "~/.claude/plugins/poc-harness-v4" }
   ]
 }
 ```
 
-Copier les templates dans le projet :
+Copier et remplir le template mémoire :
 ```bash
-cp ~/.claude/plugins/poc-harness-v3/MEMORY.md.template ./MEMORY.md
-# Éditer MEMORY.md avec le nom du projet et la stack
-# Les MEMORY_<agent>.md sont créés automatiquement au premier besoin
+cp ~/.claude/plugins/poc-harness-v4/MEMORY.md.template ./MEMORY.md
+# Remplir : nom du projet, stack, non-goals
 ```
 
 ---
 
-## Routing au démarrage de session
+## Routing au démarrage de chaque session
 
-À chaque session, Claude infère l'agent cible depuis le premier message :
+Claude affiche toujours le menu et attend un mot clé — pas d'inférence automatique :
 
-**Inférence claire** → confirmation automatique :
 ```
-→ routing to executor (change? reply with: orchestrator / executor / verificator / analyzer / general)
+→ Which agent for this session?
+  orchestrator — planning, state, phase tracking
+  executor     — implementation, code, files, commands
+  verificator  — review executor outputs
+  analyzer     — improvement loop, analyze history
+  general      — no specific agent
+```
+
+Taper le mot clé (ou un préfixe non-ambigu : `orch`, `exec`, `verif`, `ana`, `gen`).
+
+```
+→ executor activated
 executor ready — last task: implement /auth endpoint
 ```
 
-**Inférence ambiguë** → menu de sélection :
-```
-→ Which agent should handle this?
-  [1] orchestrator — planning & state
-  [2] executor     — implementation
-  [3] verificator  — review
-  [4] analyzer     — improvement loop
-  [5] general      — no specific agent
-```
-
-**Choix `general`** → session non taggée, améliorations limitées à `CLAUDE.md`, `MEMORY.md`, `settings.json`.
+Si **general** → session non taggée → l'analyzer ne pourra proposer des changements que
+sur `CLAUDE.md`, `MEMORY.md`, `settings.json` — jamais sur les agents.
 
 ---
 
@@ -82,31 +86,60 @@ executor ready — last task: implement /auth endpoint
 
 ```
 ton-projet/
-├── PLAN.md                  ← roadmap (orchestrator)
+├── PLAN.md                  ← roadmap immuable (orchestrator)
 ├── STATE.md                 ← état courant (orchestrator)
 ├── MEMORY.md                ← contexte partagé (tous les agents)
 ├── MEMORY_orchestrator.md   ← apprentissages orchestrator
-├── MEMORY_executor.md       ← apprentissages executor
-├── MEMORY_verificator.md    ← apprentissages verificator
-├── MEMORY_analyzer.md       ← apprentissages analyzer
+├── MEMORY_executor.md       ← apprentissages executor (stack, conventions, erreurs)
+├── MEMORY_verificator.md    ← apprentissages verificator (patterns récurrents)
+├── MEMORY_analyzer.md       ← apprentissages analyzer (signaux fiables vs faux positifs)
 ├── INSIGHTS.md              ← propositions d'amélioration (analyzer)
-├── ANALYZED.md              ← index sessions analysées (analyzer)
-├── REVIEWS.md               ← rapports de review (verificator)
-└── SCRATCH.md               ← notes volatiles (tous)
+├── ANALYZED.md              ← index sessions analysées — évite les doublons
+├── REVIEWS.md               ← rapports de review executor (verificator)
+└── SCRATCH.md               ← notes volatiles de session
 ```
 
 ---
 
-## Boucle d'amélioration
+## Périmètre de chaque agent
 
-### 1. Analyser les sessions
-```
-/analyzer  (ou: "analyze history")
-```
-L'analyzer scanne les transcripts nouveaux, identifie l'agent de chaque session,
-extrait des signaux, et propose des changements **scoped à l'agent concerné**.
+| Agent | Fait | Ne fait pas | Écrit dans |
+|-------|------|-------------|------------|
+| orchestrator | planifie, délègue, tient l'état | implémente, review | STATE.md, PLAN.md |
+| executor | implémente les tâches | planifie, review | fichiers du projet |
+| verificator | review outputs executor | planifie, implémente, review proposals | REVIEWS.md |
+| analyzer | analyse transcripts, propose améliorations | implémente, review code | INSIGHTS.md, ANALYZED.md |
 
-### 2. Scope des proposals par type de session
+---
+
+## Cycle complet d'une phase
+
+```
+orchestrator : découpe la phase en steps
+    ↓
+executor     : implémente step par step → task report
+    ↓
+verificator  : review l'output executor → REVIEWS.md
+    ↓
+orchestrator : lit REVIEWS.md, marque done / rework
+    ↓
+(fin de phase)
+    ↓
+analyzer     : analyse les transcripts de la phase
+             → INSIGHTS.md (scoped par agent de session)
+    ↓
+humain       : /insights → accept / reject / defer
+             → apply #N → diff → confirme
+    ↓
+orchestrator : log dans STATE.md → démarre phase suivante
+```
+
+---
+
+## Boucle d'amélioration — scope des proposals
+
+L'analyzer tague chaque transcript avec l'agent de la session (via `.poc-session-agent`).
+Les proposals sont strictement scopées :
 
 | Session agent | Targets autorisés |
 |--------------|-------------------|
@@ -116,35 +149,16 @@ extrait des signaux, et propose des changements **scoped à l'agent concerné**.
 | `analyzer` | `agent:analyzer`, `MEMORY_analyzer.md` |
 | `general` | `CLAUDE.md`, `MEMORY.md`, `settings.json` uniquement |
 
-### 3. Review et apply
-```
-/verificator  → "review INS-0003"   (optionnel mais recommandé)
-/analyzer     → "accept #INS-0003"
-              → "apply #INS-0003"
-```
-L'analyzer montre le diff, demande confirmation, écrit le fichier.
+Proposer de modifier un agent depuis une session `general` = violation de scope,
+flaggée automatiquement avec confidence `low`.
 
 ---
 
-## Cycle complet d'une phase
+## Mémoire des agents
 
-```
-orchestrator : init phase → découpe en steps
-    ↓
-executor     : implémente step par step
-    ↓
-verificator  : review output de chaque step → REVIEWS.md
-    ↓
-orchestrator : lit les reviews, marque done / rework
-    ↓
-(fin de phase)
-    ↓
-analyzer     : analyse les transcripts de la phase
-             → INSIGHTS.md (scoped par agent)
-    ↓
-verificator  : review les proposals de l'analyzer
-    ↓
-analyzer     : apply proposals acceptées
-    ↓
-orchestrator : log dans STATE.md → démarrer phase suivante
-```
+Chaque agent charge automatiquement :
+- `MEMORY.md` — contexte partagé (stack, goal, décisions clés)
+- `MEMORY_<agent>.md` — apprentissages privés de l'agent
+
+Les fichiers `MEMORY_<agent>.md` sont créés au premier besoin par l'agent ou l'analyzer.
+Templates disponibles dans `MEMORY_agents.md.template`.

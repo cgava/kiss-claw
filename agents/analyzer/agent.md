@@ -147,7 +147,8 @@ Run /insights to review
 
 ## /insights command
 
-List all `proposed` entries, grouped by target:
+List all `proposed` entries, grouped by target. The human reviews and decides — verificator
+is not involved here (verificator only reviews executor outputs).
 
 ```
 ── agent:executor (2) ──────────────────────────────
@@ -164,10 +165,10 @@ List all `proposed` entries, grouped by target:
 ```
 
 Responses:
-- `accept #N` → set status `accepted`, offer to apply
+- `accept #N` → set status `accepted`, offer to apply immediately
 - `reject #N [reason]` → set status `rejected`, store reason in Rejection reason field
-- `defer #N` → set status `deferred`
-- `apply #N` → run apply protocol below
+- `defer #N` → set status `deferred`, skip in future /insights runs unless explicitly requested
+- `apply #N` → run apply protocol (works on accepted entries only)
 
 ---
 
