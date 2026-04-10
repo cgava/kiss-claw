@@ -45,56 +45,66 @@ def run(ctx):
     if result.exit_code == -2:
         raise AssertionError("not found: claude binary not found in PATH")
 
-    # --- AC-1: Exit code is 0 ---
-    assert_exit_code(result, 0)
+    # --- AC checks wrapped in try/finally so log is written on both
+    #     success and failure (LOG-1/LOG-2/LOG-3). ---
+    error_msg = None
+    try:
+        # --- AC-1: Exit code is 0 ---
+        assert_exit_code(result, 0)
 
-    # --- AC-2: stdout is non-empty ---
-    assert len(result.stdout.strip()) > 0, (
-        "AC-2 failed: result.stdout is empty"
-    )
+        # --- AC-2: stdout is non-empty ---
+        assert len(result.stdout.strip()) > 0, (
+            "AC-2 failed: result.stdout is empty"
+        )
 
-    # --- AC-3: JSON parsed and contains "result" key ---
-    assert result.json is not None, (
-        "AC-3 failed: result.json is None (stdout could not be parsed as JSON)"
-    )
-    assert "result" in result.json, (
-        f"AC-3 failed: 'result' key not in JSON response. "
-        f"Keys: {sorted(result.json.keys())}"
-    )
+        # --- AC-3: JSON parsed and contains "result" key ---
+        assert result.json is not None, (
+            "AC-3 failed: result.json is None (stdout could not be parsed as JSON)"
+        )
+        assert "result" in result.json, (
+            f"AC-3 failed: 'result' key not in JSON response. "
+            f"Keys: {sorted(result.json.keys())}"
+        )
 
-    # --- AC-4: is_error is False ---
-    assert_json_field(result, "is_error", False)
+        # --- AC-4: is_error is False ---
+        assert_json_field(result, "is_error", False)
 
-    # --- AC-5: Response contains "hello" (case-insensitive) ---
-    response_text = result.json.get("result", "")
-    assert re.search(r"(?i)hello", response_text), (
-        f"AC-5 failed: response does not contain 'hello' (case-insensitive). "
-        f"Response: {response_text[:200]!r}"
-    )
+        # --- AC-5: Response contains "hello" (case-insensitive) ---
+        response_text = result.json.get("result", "")
+        assert re.search(r"(?i)hello", response_text), (
+            f"AC-5 failed: response does not contain 'hello' (case-insensitive). "
+            f"Response: {response_text[:200]!r}"
+        )
 
-    # --- AC-6: session_id is a non-empty string ---
-    session_id = result.json.get("session_id")
-    assert isinstance(session_id, str), (
-        f"AC-6 failed: session_id is {type(session_id).__name__}, expected str"
-    )
-    assert len(session_id) > 0, (
-        "AC-6 failed: session_id is an empty string"
-    )
+        # --- AC-6: session_id is a non-empty string ---
+        session_id = result.json.get("session_id")
+        assert isinstance(session_id, str), (
+            f"AC-6 failed: session_id is {type(session_id).__name__}, expected str"
+        )
+        assert len(session_id) > 0, (
+            "AC-6 failed: session_id is an empty string"
+        )
+    except AssertionError as exc:
+        error_msg = str(exc)
+        raise
+    finally:
+        status = "FAIL" if error_msg else "PASS"
+        _write_log(ctx, result, status, error_msg=error_msg)
 
-    # --- LOG-1/LOG-2/LOG-3: Write summary log ---
-    passed = True
-    status = "PASS"
-    _write_log(ctx, result, status, passed)
 
-
-def _write_log(ctx, result, status, passed):
+def _write_log(ctx, result, status, *, error_msg=None):
     """Write a summary log file to the workspace directory.
 
     Wrapped to satisfy LOG-3: log writing must not cause the test to fail.
     """
     try:
-        workspace = ctx.get("workspace", ".")
-        log_path = os.path.join(workspace, "tests", "scenarios", "hello_world_result.log")
+        log_dir = os.path.join(
+            ctx.get("workspace", ctx.get("scenario_dir", ".")),
+            "tests",
+            "scenarios",
+        )
+        os.makedirs(log_dir, exist_ok=True)
+        log_path = os.path.join(log_dir, "hello_world_result.log")
         preview = result.stdout[:200] if result.stdout else "(empty)"
         lines = [
             f"test: test_hello_world",
@@ -102,6 +112,8 @@ def _write_log(ctx, result, status, passed):
             f"exit_code: {result.exit_code}",
             f"response_preview: {preview}",
         ]
+        if error_msg:
+            lines.append(f"error: {error_msg}")
         with open(log_path, "w") as f:
             f.write("\n".join(lines) + "\n")
     except OSError:
