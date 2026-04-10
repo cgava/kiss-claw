@@ -1,6 +1,6 @@
 {
   "name": "kiss-claw",
-  "version": "5.1.0",
+  "version": "6.0.0",
   "description": "The simplest yet ambitious Claude AI harness for code. Stupidly efficient.",
   "repository": "https://github.com/ccgava/kiss-claw",
   "license": "MIT",

@@ -8,7 +8,16 @@ Zero external dependencies.
 
 ---
 
-## What's New in v5
+## What's New in v6
+
+| Feature | Details |
+|---------|---------|
+| `/kiss-store` persistence | All agents use `scripts/store.sh` for reads/writes — no more direct file access |
+| Backup on write | Every state file write creates an automatic backup |
+| Centralized I/O | Single entry point for all persistence operations (read, write, list, backup) |
+
+<details>
+<summary>v5 features</summary>
 
 | Feature | Details |
 |---------|---------|
@@ -17,6 +26,8 @@ Zero external dependencies.
 | Dry-run mode | `dry-run on/off` — kiss-executor describes without writing |
 | Token budget | Limit per step, alert on overage |
 | Token tracking | kiss-improver measures consumption per session → `TOKEN_STATS.md` |
+
+</details>
 
 ---
 
@@ -31,8 +42,9 @@ kiss-executor       implements (respects dry-run, stops on budget warn)
 kiss-verificator    reviews kiss-executor outputs → REVIEWS.md
 kiss-improver       analyzes transcripts → INSIGHTS.md + TOKEN_STATS.md
 
-PreToolUse hook  blocks writes to protected files
-SessionEnd hook  writes CHECKPOINT.md + updates STATE.md log
+/kiss-store          centralized persistence layer (scripts/store.sh)
+PreToolUse hook      blocks writes to protected files
+SessionEnd hook      writes CHECKPOINT.md + updates STATE.md log
 ```
 
 ---
@@ -130,6 +142,7 @@ Any attempt by another agent is blocked before execution:
 | `mark done` | kiss-orchestrator | Validate current step |
 | `dry-run on/off` | kiss-orchestrator | Toggle kiss-executor mode |
 | `/compact` | kiss-orchestrator | Write CHECKPOINT.md before compact |
+| `/kiss-store` | all agents | Persistence operations (read/write/list/backup) |
 | `/analyze` | kiss-improver | Analyze new transcripts + token consumption |
 | `/tokens` | kiss-improver | Token consumption report without re-analyzing |
 | `/insights` | kiss-improver | Review and apply proposals |
