@@ -4,41 +4,56 @@
 
 PROJECT_DIR="${1:-.}"
 KC_DIR="${KISS_CLAW_DIR:-.kiss-claw}"
+STORE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/scripts/store.sh"
+export KISS_CLAW_DIR="$KC_DIR"
+
 AGENT_FILE="$PROJECT_DIR/.poc-session-agent"
-STATE_FILE="$PROJECT_DIR/$KC_DIR/STATE.md"
-OUT="$PROJECT_DIR/$KC_DIR/CHECKPOINT.md"
 DATE=$(date +%Y-%m-%d)
 TIME=$(date +%H:%M)
 
-# --- 1. Write CHECKPOINT.md ---
-mkdir -p "$PROJECT_DIR/$KC_DIR"
+# --- 1. Write CHECKPOINT.md via store.sh ---
+CKPT="# CHECKPOINT — $DATE $TIME"
+CKPT="$CKPT
+"
 
-echo "# CHECKPOINT — $DATE $TIME" > "$OUT"
-echo "" >> "$OUT"
+STATE_CONTENT=$("$STORE" read state)
+if [[ -n "$STATE_CONTENT" ]]; then
+  CKPT="$CKPT
+## State snapshot"
+  CKPT="$CKPT
+$(echo "$STATE_CONTENT" | grep -E "(current_phase|current_step|status|blocker|updated)")"
+  CKPT="$CKPT
+"
 
-if [[ -f "$STATE_FILE" ]]; then
-  echo "## State snapshot" >> "$OUT"
-  grep -E "(current_phase|current_step|status|blocker|updated)" "$STATE_FILE" >> "$OUT"
-  echo "" >> "$OUT"
-
-  echo "## Completed steps (last 10)" >> "$OUT"
-  grep -A 20 "^completed:" "$STATE_FILE" | head -12 >> "$OUT"
-  echo "" >> "$OUT"
+  CKPT="$CKPT
+## Completed steps (last 10)"
+  CKPT="$CKPT
+$(echo "$STATE_CONTENT" | grep -A 20 "^completed:" | head -12)"
+  CKPT="$CKPT
+"
 fi
 
-echo "## Files modified this session" >> "$OUT"
+CKPT="$CKPT
+## Files modified this session"
 if git -C "$PROJECT_DIR" rev-parse --is-inside-work-tree &>/dev/null; then
-  git -C "$PROJECT_DIR" diff --name-only HEAD 2>/dev/null >> "$OUT"
-  git -C "$PROJECT_DIR" ls-files --others --exclude-standard 2>/dev/null >> "$OUT"
+  CKPT="$CKPT
+$(git -C "$PROJECT_DIR" diff --name-only HEAD 2>/dev/null)
+$(git -C "$PROJECT_DIR" ls-files --others --exclude-standard 2>/dev/null)"
 else
-  find "$PROJECT_DIR" -maxdepth 3 -newer "$STATE_FILE" -not -path "*/.git/*" \
-    -not -name "CHECKPOINT.md" -not -name ".poc-session-agent" 2>/dev/null >> "$OUT"
+  STATE_FILE="$PROJECT_DIR/$KC_DIR/STATE.md"
+  CKPT="$CKPT
+$(find "$PROJECT_DIR" -maxdepth 3 -newer "$STATE_FILE" -not -path "*/.git/*" \
+    -not -name "CHECKPOINT.md" -not -name ".poc-session-agent" 2>/dev/null)"
 fi
-echo "" >> "$OUT"
+CKPT="$CKPT
+"
 
-echo "## Resume instruction" >> "$OUT"
-echo "Read this file first, then STATE.md, then MEMORY.md. Do not re-read PLAN.md unless" >> "$OUT"
-echo "the current step is ambiguous. Proceed from current_step." >> "$OUT"
+CKPT="$CKPT
+## Resume instruction
+Read this file first, then STATE.md, then MEMORY.md. Do not re-read PLAN.md unless
+the current step is ambiguous. Proceed from current_step."
+
+echo "$CKPT" | "$STORE" write checkpoint
 
 # --- 2. Read active agent (if any) ---
 AGENT=""
@@ -47,22 +62,14 @@ if [[ -f "$AGENT_FILE" ]]; then
 fi
 
 # --- 3. If agent was kiss-orchestrator, update STATE.md ---
-if [[ "$AGENT" == "kiss-orchestrator" && -f "$STATE_FILE" ]]; then
-  if grep -q "^updated:" "$STATE_FILE"; then
-    sed -i "s/^updated:.*$/updated: $DATE/" "$STATE_FILE"
-  else
-    echo "updated: $DATE" >> "$STATE_FILE"
-  fi
+if [[ "$AGENT" == "kiss-orchestrator" && -n "$STATE_CONTENT" ]]; then
+  "$STORE" update state updated "$DATE"
 
-  STEP=$(grep -m1 "^current_step:" "$STATE_FILE" | sed 's/^current_step:[[:space:]]*//')
-  STATUS=$(grep -m1 "^status:" "$STATE_FILE" | sed 's/^status:[[:space:]]*//')
-  LOG_ENTRY="- $DATE: session ended — step: ${STEP:-unknown}, status: ${STATUS:-unknown}"
+  STEP=$(echo "$STATE_CONTENT" | grep -m1 "^current_step:" | sed 's/^current_step:[[:space:]]*//' | tr -d '"')
+  STATUS=$(echo "$STATE_CONTENT" | grep -m1 "^status:" | sed 's/^status:[[:space:]]*//' | tr -d '"')
+  LOG_ENTRY="  - \"$DATE: session ended — step: ${STEP:-unknown}, status: ${STATUS:-unknown}\""
 
-  if grep -q "^log:" "$STATE_FILE"; then
-    sed -i "/^log:/a\\$LOG_ENTRY" "$STATE_FILE"
-  else
-    printf "\nlog:\n%s\n" "$LOG_ENTRY" >> "$STATE_FILE"
-  fi
+  "$STORE" append state "$LOG_ENTRY"
 fi
 
 # --- 4. Delete agent file ---

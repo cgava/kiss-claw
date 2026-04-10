@@ -11,8 +11,10 @@ set -euo pipefail
 # Resolve repo root (one level up from scripts/)
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEMPLATE_DIR="$REPO_DIR/templates"
+STORE="$REPO_DIR/scripts/store.sh"
 
 KC_DIR="${KISS_CLAW_DIR:-.kiss-claw}"
+export KISS_CLAW_DIR="$KC_DIR"
 
 show_status() {
   echo "kiss-claw project status"
@@ -25,17 +27,25 @@ show_status() {
     return
   fi
 
-  for f in MEMORY.md MEMORY_kiss-orchestrator.md MEMORY_kiss-executor.md MEMORY_kiss-verificator.md MEMORY_kiss-improver.md; do
-    if [ -f "$KC_DIR/$f" ]; then
-      echo "  ✓ $f"
+  for res in memory memory:kiss-orchestrator memory:kiss-executor memory:kiss-verificator memory:kiss-improver; do
+    case "$res" in
+      memory)   label="MEMORY.md" ;;
+      memory:*) label="MEMORY_${res#memory:}.md" ;;
+    esac
+    if [ "$("$STORE" exists "$res")" = "true" ]; then
+      echo "  ✓ $label"
     else
-      echo "  ✗ $f (missing)"
+      echo "  ✗ $label (missing)"
     fi
   done
 
-  for f in PLAN.md STATE.md CHECKPOINT.md INSIGHTS.md ANALYZED.md TOKEN_STATS.md REVIEWS.md SCRATCH.md; do
-    if [ -f "$KC_DIR/$f" ]; then
-      echo "  ● $f (runtime)"
+  for res in plan state checkpoint insights analyzed token-stats reviews scratch; do
+    case "$res" in
+      token-stats) label="TOKEN_STATS.md" ;;
+      *)           label="$(echo "$res" | tr '[:lower:]' '[:upper:]').md" ;;
+    esac
+    if [ "$("$STORE" exists "$res")" = "true" ]; then
+      echo "  ● $label (runtime)"
     fi
   done
 }
@@ -51,24 +61,23 @@ do_init() {
   mkdir -p "$KC_DIR"
 
   # Copy MEMORY.md template
-  if [ -f "$KC_DIR/MEMORY.md" ]; then
+  if [ "$("$STORE" exists memory)" = "true" ]; then
     echo "  skip MEMORY.md (already exists)"
   else
-    cp "$TEMPLATE_DIR/MEMORY.md.template" "$KC_DIR/MEMORY.md"
+    "$STORE" write memory < "$TEMPLATE_DIR/MEMORY.md.template" > /dev/null
     echo "  created MEMORY.md"
   fi
 
   # Split agent memory templates into individual files
   if [ -f "$TEMPLATE_DIR/MEMORY_agents.md.template" ]; then
     for agent in kiss-orchestrator kiss-executor kiss-verificator kiss-improver; do
-      target="$KC_DIR/MEMORY_${agent}.md"
-      if [ -f "$target" ]; then
+      if [ "$("$STORE" exists "memory:${agent}")" = "true" ]; then
         echo "  skip MEMORY_${agent}.md (already exists)"
       else
         # Extract the section for this agent from the combined template
         sed -n "/^# MEMORY_${agent}.md/,/^---$/p" "$TEMPLATE_DIR/MEMORY_agents.md.template" \
           | sed '$ { /^---$/d }' \
-          > "$target"
+          | "$STORE" write "memory:${agent}" > /dev/null
         echo "  created MEMORY_${agent}.md"
       fi
     done

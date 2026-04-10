@@ -42,6 +42,11 @@ fi
 
 # Check bash commands that redirect into protected files
 if [[ "$TOOL" == "Bash" && -n "$BASH_CMD" ]]; then
+  # Allow store.sh — it is the authorized persistence path for /kiss-store.
+  # Agents call scripts/store.sh via Bash to read/write protected files safely.
+  if [[ "$BASH_CMD" == *scripts/store.sh* ]]; then
+    exit 0
+  fi
   for f in "${PROTECTED[@]}"; do
     if echo "$BASH_CMD" | grep -qE "(>|>>)\s*\.?/?(${KC_DIR}/)?${f}(\s|$)"; then
       echo "BLOCK: bash command attempts to write to protected file $KC_DIR/$f."
