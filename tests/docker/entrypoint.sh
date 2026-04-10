@@ -30,6 +30,11 @@ COMMIT="${1:-${KISS_COMMIT:-HEAD}}"
 if [ -n "${GIT_REMOTE_URL:-}" ] && [ -n "${SSH_AUTH_SOCK:-}" ]; then
   CLONE_SOURCE="$GIT_REMOTE_URL"
   echo "Clone source: remote ($CLONE_SOURCE) via SSH agent"
+  # Populate known_hosts at runtime (not baked into image)
+  echo "Fetching SSH host keys for github.com ..."
+  mkdir -p /root/.ssh
+  ssh-keyscan -t ed25519,rsa github.com >> /root/.ssh/known_hosts 2>/dev/null
+  chmod 600 /root/.ssh/known_hosts
 else
   CLONE_SOURCE="file:///repo-source"
   # Verify local mount exists
@@ -46,7 +51,7 @@ rm -rf /workspace/*
 cd /workspace
 
 echo "Cloning from $CLONE_SOURCE ..."
-git clone "$CLONE_SOURCE" . 2>&1 | tail -1
+git clone "$CLONE_SOURCE" .
 
 # --- Checkout specific commit ---
 if [ "$COMMIT" != "HEAD" ]; then

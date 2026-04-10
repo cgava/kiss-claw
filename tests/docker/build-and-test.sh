@@ -1,17 +1,29 @@
 #!/bin/bash
 # kiss-claw Docker build and smoke test
 #
-# Usage: ./tests/docker/build-and-test.sh [commit_sha]
 # Run from the kiss-claw repo root.
+#
+# Usage:
+#   ./tests/docker/build-and-test.sh [commit_sha]
+#   GIT_REMOTE_URL=git@github.com:user/repo.git ./tests/docker/build-and-test.sh --ssh [commit_sha]
 #
 # Options:
 #   $1          — commit SHA to checkout inside container (default: current HEAD)
 #   --ssh       — forward SSH agent for remote clone testing
+#                 Requires: GIT_REMOTE_URL env var set to the remote repo URL
+#                 Requires: SSH_AUTH_SOCK to be available (ssh-agent running)
+#
+# Environment variables:
+#   GIT_REMOTE_URL — remote repo URL for SSH clone (e.g., git@github.com:user/kiss-claw.git)
+#                    Required when using --ssh.
 #
 # Examples:
 #   ./tests/docker/build-and-test.sh                    # local clone, HEAD
 #   ./tests/docker/build-and-test.sh abc1234            # local clone, specific commit
-#   ./tests/docker/build-and-test.sh --ssh              # remote clone via SSH agent
+#   GIT_REMOTE_URL=git@github.com:user/kiss-claw.git \
+#     ./tests/docker/build-and-test.sh --ssh            # remote clone via SSH agent
+#   GIT_REMOTE_URL=git@github.com:user/kiss-claw.git \
+#     ./tests/docker/build-and-test.sh --ssh abc1234    # remote clone, specific commit
 
 set -euo pipefail
 
@@ -27,6 +39,13 @@ for arg in "$@"; do
     *)     COMMIT="$arg" ;;
   esac
 done
+
+# Validate --ssh requires GIT_REMOTE_URL
+if [ "$USE_SSH" = true ] && [ -z "${GIT_REMOTE_URL:-}" ]; then
+  echo "ERROR: --ssh requires GIT_REMOTE_URL to be set."
+  echo "Usage: GIT_REMOTE_URL=git@github.com:user/repo.git $0 --ssh [commit]"
+  exit 1
+fi
 
 # Default commit: current HEAD
 if [ -z "$COMMIT" ]; then
@@ -53,10 +72,12 @@ if [ "$USE_SSH" = true ] && [ -n "${SSH_AUTH_SOCK:-}" ]; then
   DOCKER_ARGS+=(
     -v "$SSH_AUTH_SOCK":/ssh-agent
     -e SSH_AUTH_SOCK=/ssh-agent
+    -e GIT_REMOTE_URL="$GIT_REMOTE_URL"
   )
 else
   if [ "$USE_SSH" = true ]; then
-    echo "WARNING: --ssh requested but SSH_AUTH_SOCK is not set"
+    echo "ERROR: --ssh requested but SSH_AUTH_SOCK is not set (is ssh-agent running?)"
+    exit 1
   fi
 fi
 

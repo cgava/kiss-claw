@@ -30,11 +30,6 @@ WORKDIR /workspace
 #   -v ~/.claude:/root/.claude:ro          — OAuth tokens
 #   -v $SSH_AUTH_SOCK:/ssh-agent           — (optional) SSH agent forwarding
 
-# Pre-populate known_hosts for github.com (needed for SSH clone)
-RUN mkdir -p /root/.ssh && \
-  ssh-keyscan -t ed25519,rsa github.com >> /root/.ssh/known_hosts 2>/dev/null && \
-  chmod 600 /root/.ssh/known_hosts
-
 ENV KISS_CLAW_DIR=.kiss-claw
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
