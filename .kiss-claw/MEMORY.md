@@ -13,6 +13,11 @@
 - **License**: MIT
 - **Status**: v6.0 stable — persistence skills layer via /kiss-store
 
+## Contraintes modèle
+
+- Tous les agents kiss-claw (orchestrator, executor, verificator, improver) DOIVENT tourner sur Opus ou Sonnet. Haiku est interdit — capacité de raisonnement insuffisante pour suivre les protocoles multi-étapes.
+- Si Haiku détecté en début de session, alerter immédiatement l'utilisateur et ne pas continuer.
+
 ## Tech stack
 
 - Language: Bash (scripts, hooks) + Markdown (agents, templates, état)

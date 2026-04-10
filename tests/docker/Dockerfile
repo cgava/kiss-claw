@@ -20,12 +20,15 @@ RUN npm install -g @anthropic-ai/claude-code
 # Create workspace directory for test projects
 WORKDIR /workspace
 
-# Copy kiss-claw plugin source (mounted at /plugin in container)
-# This allows the entrypoint to initialize kiss-claw in test projects
+# Environment and entrypoint
 ENV KISS_CLAW_DIR=.kiss-claw
 
-# Set entrypoint to orchestration script
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# Create a wrapper that forwards all arguments to the mounted entrypoint script
+RUN mkdir -p /tmp && cat > /tmp/entrypoint-wrapper.sh << 'EOF'
+#!/bin/bash
+exec bash /plugin/tests/docker/entrypoint.sh "$@"
+EOF
+RUN chmod +x /tmp/entrypoint-wrapper.sh
 
-ENTRYPOINT ["/entrypoint.sh"]
+# Use the wrapper to properly forward arguments
+ENTRYPOINT ["/tmp/entrypoint-wrapper.sh"]
