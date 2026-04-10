@@ -27,6 +27,7 @@ from tests.lib.assertions import (
     assert_file_exists,
 )
 from tests.lib.claude_cli import invoke
+from tests.lib.report import generate_report
 
 # Derive kiss-claw repo root from this file's location (tests/scenarios/test_konvert_agents.py)
 _REPO_ROOT = str(Path(__file__).resolve().parents[2])
@@ -215,19 +216,14 @@ def run(ctx):
 
     finally:
         # --- Logging (LOG-1 through LOG-5) ---
-        _write_log(
-            ctx,
-            result=result,
-            ac_results=ac_results,
-            all_passed=all_passed,
-            workspace=workspace,
-            duration=time.time() - start_time,
-        )
+        final_duration = time.time() - start_time
+        preserved = True
 
         # --- SET-3: Cleanup strategy ---
         # Default: preserve workspace for inspection.
         # Set KISS_CLEANUP_ON_SUCCESS=1 to delete on success.
         if all_passed and os.environ.get("KISS_CLEANUP_ON_SUCCESS") == "1":
+            preserved = False
             try:
                 shutil.rmtree(workspace)
             except OSError:
@@ -236,9 +232,18 @@ def run(ctx):
             print(f"  Workspace preserved: {workspace}")
         # On failure, workspace is always preserved (LOG-5 handles the message)
 
+        _write_report(
+            ctx,
+            result=result,
+            ac_results=ac_results,
+            workspace=workspace,
+            duration=final_duration,
+            preserved=preserved,
+        )
 
-def _write_log(ctx, *, result, ac_results, all_passed, workspace, duration):
-    """Write a detailed log file with per-criterion results.
+
+def _write_report(ctx, *, result, ac_results, workspace, duration, preserved):
+    """Write a structured Markdown test report.
 
     Wrapped to satisfy LOG-3: log writing must not cause the test to fail.
     """
@@ -249,44 +254,24 @@ def _write_log(ctx, *, result, ac_results, all_passed, workspace, duration):
             "scenarios",
         )
         os.makedirs(log_dir, exist_ok=True)
-        log_path = os.path.join(log_dir, "konvert_agents_result.log")
+        report_path = os.path.join(log_dir, "konvert_agents_report.md")
 
-        status = "PASS" if all_passed else "FAIL"
-
-        # Extract metadata from result
-        exit_code = result.exit_code if result else "(no result)"
         session_id = "(unknown)"
-        cost = "(unknown)"
         if result and result.json:
             session_id = result.json.get("session_id", "(unknown)")
-            cost = result.json.get("cost_usd", result.json.get("cost", "(unknown)"))
 
-        lines = [
-            f"test: test_konvert_agents",
-            f"status: {status}",
-            f"exit_code: {exit_code}",
-            f"duration: {duration:.1f}s",
-            f"cost: {cost}",
-            f"session_id: {session_id}",
-            f"workspace: {workspace}",
-            "",
-            "--- Acceptance Criteria Results ---",
-        ]
+        report = generate_report(
+            test_name="test_konvert_agents",
+            session_id=session_id,
+            duration=duration,
+            workspace=workspace,
+            ac_results=ac_results,
+            result=result,
+            preserved=preserved,
+        )
 
-        # LOG-4: One line per criterion
-        for ac_id, passed, description, error in ac_results:
-            if passed:
-                lines.append(f"{ac_id}: PASS — {description}")
-            else:
-                lines.append(f"{ac_id}: FAIL — {description} — {error}")
-
-        # LOG-5: Preserve workspace message on failure
-        if not all_passed:
-            lines.append("")
-            lines.append(f"WORKSPACE PRESERVED FOR INSPECTION: {workspace}")
-
-        with open(log_path, "w") as f:
-            f.write("\n".join(lines) + "\n")
+        with open(report_path, "w") as f:
+            f.write(report)
 
     except OSError:
         pass  # LOG-3: log failure must not break the test

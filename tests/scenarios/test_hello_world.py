@@ -7,6 +7,7 @@ returns valid JSON output, and responds with expected content.
 import os
 import re
 import sys
+import time
 
 # Ensure project root is on sys.path so "tests.lib" is importable
 # when the runner loads this file via importlib.
@@ -20,6 +21,7 @@ from tests.lib.assertions import (
     assert_stdout_contains,
 )
 from tests.lib.claude_cli import invoke
+from tests.lib.report import generate_report
 
 
 def run(ctx):
@@ -31,6 +33,10 @@ def run(ctx):
     Raises:
         AssertionError: If any acceptance criterion fails.
     """
+    ac_results = []
+    result = None
+    start_time = time.time()
+
     # --- Invoke Claude with a deterministic prompt ---
     result = invoke(
         "Say exactly: hello world",
@@ -41,59 +47,90 @@ def run(ctx):
 
     # --- ERR-1 / ERR-2: Handle special exit codes before other checks ---
     if result.exit_code == -1:
+        ac_results.append(("AC-1", False, "Exit code is 0", "timeout after 60s"))
         raise AssertionError("timeout: claude invocation timed out")
     if result.exit_code == -2:
+        ac_results.append(("AC-1", False, "Exit code is 0", "claude binary not found"))
         raise AssertionError("not found: claude binary not found in PATH")
 
-    # --- AC checks wrapped in try/finally so log is written on both
+    # --- AC checks wrapped in try/finally so report is written on both
     #     success and failure (LOG-1/LOG-2/LOG-3). ---
-    error_msg = None
     try:
         # --- AC-1: Exit code is 0 ---
-        assert_exit_code(result, 0)
+        try:
+            assert_exit_code(result, 0)
+            ac_results.append(("AC-1", True, "Exit code is 0", ""))
+        except AssertionError as e:
+            ac_results.append(("AC-1", False, "Exit code is 0", str(e)))
+            raise
 
         # --- AC-2: stdout is non-empty ---
-        assert len(result.stdout.strip()) > 0, (
-            "AC-2 failed: result.stdout is empty"
-        )
+        try:
+            assert len(result.stdout.strip()) > 0, (
+                "AC-2 failed: result.stdout is empty"
+            )
+            ac_results.append(("AC-2", True, "stdout is non-empty", ""))
+        except AssertionError as e:
+            ac_results.append(("AC-2", False, "stdout is non-empty", str(e)))
+            raise
 
         # --- AC-3: JSON parsed and contains "result" key ---
-        assert result.json is not None, (
-            "AC-3 failed: result.json is None (stdout could not be parsed as JSON)"
-        )
-        assert "result" in result.json, (
-            f"AC-3 failed: 'result' key not in JSON response. "
-            f"Keys: {sorted(result.json.keys())}"
-        )
+        try:
+            assert result.json is not None, (
+                "AC-3 failed: result.json is None (stdout could not be parsed as JSON)"
+            )
+            assert "result" in result.json, (
+                f"AC-3 failed: 'result' key not in JSON response. "
+                f"Keys: {sorted(result.json.keys())}"
+            )
+            ac_results.append(("AC-3", True, "JSON parsed with 'result' key", ""))
+        except AssertionError as e:
+            ac_results.append(("AC-3", False, "JSON parsed with 'result' key", str(e)))
+            raise
 
         # --- AC-4: is_error is False ---
-        assert_json_field(result, "is_error", False)
+        try:
+            assert_json_field(result, "is_error", False)
+            ac_results.append(("AC-4", True, "is_error is False", ""))
+        except AssertionError as e:
+            ac_results.append(("AC-4", False, "is_error is False", str(e)))
+            raise
 
         # --- AC-5: Response contains "hello" (case-insensitive) ---
-        response_text = result.json.get("result", "")
-        assert re.search(r"(?i)hello", response_text), (
-            f"AC-5 failed: response does not contain 'hello' (case-insensitive). "
-            f"Response: {response_text[:200]!r}"
-        )
+        try:
+            response_text = result.json.get("result", "")
+            assert re.search(r"(?i)hello", response_text), (
+                f"AC-5 failed: response does not contain 'hello' (case-insensitive). "
+                f"Response: {response_text[:200]!r}"
+            )
+            ac_results.append(("AC-5", True, "Response contains 'hello'", ""))
+        except AssertionError as e:
+            ac_results.append(("AC-5", False, "Response contains 'hello'", str(e)))
+            raise
 
         # --- AC-6: session_id is a non-empty string ---
-        session_id = result.json.get("session_id")
-        assert isinstance(session_id, str), (
-            f"AC-6 failed: session_id is {type(session_id).__name__}, expected str"
-        )
-        assert len(session_id) > 0, (
-            "AC-6 failed: session_id is an empty string"
-        )
-    except AssertionError as exc:
-        error_msg = str(exc)
+        try:
+            session_id = result.json.get("session_id")
+            assert isinstance(session_id, str), (
+                f"AC-6 failed: session_id is {type(session_id).__name__}, expected str"
+            )
+            assert len(session_id) > 0, (
+                "AC-6 failed: session_id is an empty string"
+            )
+            ac_results.append(("AC-6", True, "session_id is non-empty string", ""))
+        except AssertionError as e:
+            ac_results.append(("AC-6", False, "session_id is non-empty string", str(e)))
+            raise
+
+    except AssertionError:
         raise
     finally:
-        status = "FAIL" if error_msg else "PASS"
-        _write_log(ctx, result, status, error_msg=error_msg)
+        _write_report(ctx, result=result, ac_results=ac_results,
+                       duration=time.time() - start_time)
 
 
-def _write_log(ctx, result, status, *, error_msg=None):
-    """Write a summary log file to the workspace directory.
+def _write_report(ctx, *, result, ac_results, duration):
+    """Write a structured Markdown test report.
 
     Wrapped to satisfy LOG-3: log writing must not cause the test to fail.
     """
@@ -104,17 +141,24 @@ def _write_log(ctx, result, status, *, error_msg=None):
             "scenarios",
         )
         os.makedirs(log_dir, exist_ok=True)
-        log_path = os.path.join(log_dir, "hello_world_result.log")
-        preview = result.stdout[:200] if result.stdout else "(empty)"
-        lines = [
-            f"test: test_hello_world",
-            f"status: {status}",
-            f"exit_code: {result.exit_code}",
-            f"response_preview: {preview}",
-        ]
-        if error_msg:
-            lines.append(f"error: {error_msg}")
-        with open(log_path, "w") as f:
-            f.write("\n".join(lines) + "\n")
+        report_path = os.path.join(log_dir, "hello_world_report.md")
+
+        session_id = "(unknown)"
+        if result and result.json:
+            session_id = result.json.get("session_id", "(unknown)")
+
+        report = generate_report(
+            test_name="test_hello_world",
+            session_id=session_id,
+            duration=duration,
+            workspace="",
+            ac_results=ac_results,
+            result=result,
+            preserved=False,
+        )
+
+        with open(report_path, "w") as f:
+            f.write(report)
+
     except OSError:
         pass  # LOG-3: log failure must not break the test
