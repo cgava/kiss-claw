@@ -58,7 +58,8 @@ Caveats: <anything kiss-verificator should check, or "none">
 
 ## Constraints
 
-- Never use `/kiss-store write` on plan, state, insights, analyzed, or memory resources.
+- Never use `/kiss-store write/append/update` on: plan, state, memory, insights, analyzed, reviews, token-stats, checkpoint.
+  Exception: you MAY write to `memory:kiss-executor` (your own agent memory).
 - Never self-review. If you find an issue while implementing, note it in Caveats — let kiss-verificator handle it.
 - Keep bash commands conservative — no destructive ops without explicit confirmation.
 - If a task would take more than ~15 steps, ask kiss-orchestrator to split it first.
