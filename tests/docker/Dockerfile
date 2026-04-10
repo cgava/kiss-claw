@@ -1,10 +1,10 @@
-# kiss-claw Test Runner - Minimal Docker image
-# Base: debian:stable-slim (lightweight)
-# Purpose: Execute kiss-claw test scenarios in isolated containers
+# kiss-claw Test Runner - Docker image
+# Base: debian:stable-slim
+# Purpose: Python + Claude CLI environment for functional tests
 
 FROM debian:stable-slim
 
-# System packages - minimal essentials
+# System packages + Python 3 with venv support
 RUN apt-get update && apt-get install -y --no-install-recommends \
   bash \
   git \
@@ -12,23 +12,25 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   jq \
   ca-certificates \
   npm \
+  python3 \
+  python3-venv \
   && rm -rf /var/lib/apt/lists/*
 
 # Install Claude CLI globally
 RUN npm install -g @anthropic-ai/claude-code
 
-# Create workspace directory for test projects
+# Create Python venv (stdlib only, no pip install needed)
+RUN python3 -m venv /opt/test-venv
+
 WORKDIR /workspace
 
-# Environment and entrypoint
+# Mount points (documented, not baked in):
+#   -v <host-kiss-claw>:/plugin:ro        — plugin source
+#   -v ~/.claude:/root/.claude:ro          — OAuth tokens
+
 ENV KISS_CLAW_DIR=.kiss-claw
 
-# Create a wrapper that forwards all arguments to the mounted entrypoint script
-RUN mkdir -p /tmp && cat > /tmp/entrypoint-wrapper.sh << 'EOF'
-#!/bin/bash
-exec bash /plugin/tests/docker/entrypoint.sh "$@"
-EOF
-RUN chmod +x /tmp/entrypoint-wrapper.sh
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# Use the wrapper to properly forward arguments
-ENTRYPOINT ["/tmp/entrypoint-wrapper.sh"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
