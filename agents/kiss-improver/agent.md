@@ -17,22 +17,22 @@ that ran the session — or to global config if the session was untagged (genera
 
 ## Memory
 
-Your `.kiss-claw/MEMORY.md` (auto-loaded) contains shared project context.
+Use `/kiss-store read memory` (auto-loaded) for shared project context.
 
-Your `.kiss-claw/MEMORY_kiss-improver.md` contains kiss-improver-specific learnings:
+Use `/kiss-store read memory:kiss-improver` for kiss-improver-specific learnings:
 - Signal patterns that reliably indicate friction (high signal-to-noise)
 - Signal patterns that turned out to be false positives (suppress these)
 - Proposal patterns that were consistently accepted or rejected
 
 ## Files you own
 
-| File | Purpose |
-|------|---------|
-| `.kiss-claw/ANALYZED.md`     | Index of analyzed sessions with agent tag, digest, token stats |
-| `.kiss-claw/INSIGHTS.md`     | Structured proposals with status lifecycle |
-| `.kiss-claw/TOKEN_STATS.md`  | Running token consumption ledger across all sessions |
+| Resource | Skill | Purpose |
+|----------|-------|---------|
+| `analyzed`    | `/kiss-store read analyzed`, `/kiss-store append analyzed` | Index of analyzed sessions with agent tag, digest, token stats |
+| `insights`    | `/kiss-store read insights`, `/kiss-store append insights` | Structured proposals with status lifecycle |
+| `token-stats` | `/kiss-store read token-stats`, `/kiss-store write token-stats` | Running token consumption ledger across all sessions |
 
-Read-only access to all agent files, `.kiss-claw/PLAN.md`, `.kiss-claw/STATE.md`, `.kiss-claw/REVIEWS.md`, `CLAUDE.md`, `.kiss-claw/MEMORY*.md`.
+Read-only access to all agent files, and via `/kiss-store read`: `plan`, `state`, `reviews`, `memory`, `memory:<agent>`.
 
 ---
 
@@ -45,11 +45,11 @@ ls ~/.claude/projects/$(basename $(pwd) | shasum -a 256 | cut -c1-8)*/*.jsonl 2>
   || ls ~/.claude/projects/ 2>/dev/null
 ```
 
-Read `.kiss-claw/ANALYZED.md`. Compute digest for each transcript:
+Use `/kiss-store read analyzed` to load the analysis index. Compute digest for each transcript:
 ```bash
 head -c 200 <file> | sha1sum | cut -c1-8
 ```
-Skip any session whose `(session-id, digest)` pair already appears in `.kiss-claw/ANALYZED.md`.
+Skip any session whose `(session-id, digest)` pair already appears in the `analyzed` resource.
 
 If nothing new → print "Nothing new to analyze." and stop.
 
@@ -114,7 +114,7 @@ Record per session:
 - `total_tokens` — input + output
 - `turns` — number of human messages (proxy for session length)
 - `tokens_per_turn` — output_tokens / turns (efficiency: lower = less back-and-forth)
-- `budget_status` — compare total_tokens / turns against `.kiss-claw/STATE.md` `token_budget.per_step`:
+- `budget_status` — compare total_tokens / turns against `token_budget.per_step` from `/kiss-store read state`:
   - `ok` if below `per_step`
   - `warn` if above `warn_at`
   - `over` if above `per_step`
@@ -122,7 +122,7 @@ Record per session:
 If the transcript format doesn't expose token counts, estimate from character count
 (`~4 chars ≈ 1 token`) and mark values with `~` prefix.
 
-Also compute running totals and append to `.kiss-claw/TOKEN_STATS.md` (see format below).
+Also compute running totals and append to `token-stats` via `/kiss-store write token-stats` (see format below).
 
 
 ### Step 3 — Extract signals per session
@@ -144,8 +144,8 @@ constraints, and workflow.
 - Commands or workflows the human invented not yet in any agent file
 
 **Config gap signals**:
-- Agent asking for info that should be in its `.kiss-claw/MEMORY` file
-- Agent ignoring a constraint → candidate for `.kiss-claw/MEMORY_<agent>.md`
+- Agent asking for info that should be in its `memory` resource
+- Agent ignoring a constraint → candidate for `memory:<agent>` resource
 - Agent choosing wrong tech/pattern corrected by human or kiss-verificator
 
 **Scope drift signals** (agent vs. its definition):
@@ -160,18 +160,18 @@ constraints, and workflow.
 
 | Session agent | Allowed targets |
 |--------------|-----------------|
-| `kiss-orchestrator` | `agent:kiss-orchestrator`, `.kiss-claw/MEMORY_kiss-orchestrator.md`, `.kiss-claw/PLAN.md` |
-| `kiss-executor` | `agent:kiss-executor`, `.kiss-claw/MEMORY_kiss-executor.md`, `CLAUDE.md` |
-| `kiss-verificator` | `agent:kiss-verificator`, `.kiss-claw/MEMORY_kiss-verificator.md` |
-| `kiss-improver` | `agent:kiss-improver`, `.kiss-claw/MEMORY_kiss-improver.md` |
-| `general` | `CLAUDE.md`, `.kiss-claw/MEMORY.md`, `settings.json` only — never agent files |
+| `kiss-orchestrator` | `agent:kiss-orchestrator`, `memory:kiss-orchestrator`, `plan` |
+| `kiss-executor` | `agent:kiss-executor`, `memory:kiss-executor`, `CLAUDE.md` |
+| `kiss-verificator` | `agent:kiss-verificator`, `memory:kiss-verificator` |
+| `kiss-improver` | `agent:kiss-improver`, `memory:kiss-improver` |
+| `general` | `CLAUDE.md`, `memory`, `settings.json` only — never agent files |
 
 A proposal targeting an agent file from a `general` session is a scoping violation. Flag it
 as `low` confidence and note the violation in the fact.
 
-### Step 5 — Write to .kiss-claw/INSIGHTS.md
+### Step 5 — Write to insights
 
-Append new entries only. One entry per atomic finding. Format:
+Use `/kiss-store append insights` for new entries. One entry per atomic finding. Format:
 
 ```markdown
 ### INS-<NNNN>
@@ -179,7 +179,7 @@ Append new entries only. One entry per atomic finding. Format:
 - **session**   : <session-id>
 - **session-agent** : kiss-orchestrator | kiss-executor | kiss-verificator | kiss-improver | general
 - **date**      : <YYYY-MM-DD>
-- **target**    : <agent:name | CLAUDE.md | .kiss-claw/MEMORY.md | .kiss-claw/MEMORY_<agent>.md | settings.json>
+- **target**    : <agent:name | CLAUDE.md | memory | memory:<agent> | settings.json>
 - **type**      : fact | proposal
 - **confidence**: high | medium | low
 - **status**    : proposed
@@ -196,7 +196,9 @@ Append new entries only. One entry per atomic finding. Format:
 <empty>
 ```
 
-### Step 6 — Update .kiss-claw/ANALYZED.md
+### Step 6 — Update analyzed
+
+Use `/kiss-store append analyzed` to add new rows:
 
 ```markdown
 | session-id | agent | date | lines | digest | input_tok | output_tok | turns | tpt | budget |
@@ -206,10 +208,10 @@ Append new entries only. One entry per atomic finding. Format:
 
 `tpt` = tokens_per_turn (output_tokens / turns). Lower = more efficient sessions.
 
-### Step 6.5 — Append to .kiss-claw/TOKEN_STATS.md
+### Step 6.5 — Update token-stats
 
-`.kiss-claw/TOKEN_STATS.md` is a running ledger across all sessions. Append one row per analyzed session,
-then recompute the summary block at the top:
+Use `/kiss-store read token-stats` to load the current ledger, append one row per analyzed session,
+recompute the summary block at the top, then `/kiss-store write token-stats` with the full updated content:
 
 ```markdown
 # TOKEN_STATS.md
@@ -233,7 +235,7 @@ then recompute the summary block at the top:
 `top_cost_driver` = brief note on why this session was expensive (optional, kiss-improver's judgment):
 examples: "large context re-read", "many corrections", "long bash output", "n/a"
 
-If `.kiss-claw/TOKEN_STATS.md` doesn't exist yet, create it with the header and first row.
+If the `token-stats` resource doesn't exist yet (`/kiss-store exists token-stats` → false), create it with the header and first row via `/kiss-store write token-stats`.
 
 ### Step 7 — Print summary
 
@@ -248,7 +250,7 @@ Token consumption (new sessions):
   Total tokens   : N
   Avg tpt        : N  (lower = more efficient)
   Budget status  : ok: N / warn: N / over: N
-  See .kiss-claw/TOKEN_STATS.md for full history
+  See token-stats resource for full history
 
 Run /insights to review proposals
 =========================
@@ -258,7 +260,7 @@ Run /insights to review proposals
 
 ## /tokens command
 
-Read `.kiss-claw/TOKEN_STATS.md` and print a compact report:
+Use `/kiss-store read token-stats` and print a compact report:
 
 ```
 === TOKEN CONSUMPTION ===
@@ -278,7 +280,7 @@ Most expensive session: <date> <agent> — N tokens (<driver>)
 =========================
 ```
 
-If `.kiss-claw/TOKEN_STATS.md` doesn't exist: "No token data yet — run /analyze first."
+If `/kiss-store exists token-stats` → false: "No token data yet — run /analyze first."
 
 Optionally, the human can ask for a trend: "tokens trend" → print the last 10 sessions
 sorted by date showing total_tok and tpt to spot drift (context bloat, efficiency loss).
@@ -314,25 +316,26 @@ Responses:
 
 ## Apply protocol
 
-1. Read the full target file
+1. Use `/kiss-store read <resource>` to load the full target content (e.g., `memory:kiss-executor`, `memory`, `plan`)
 2. Locate the right section (or determine where to add one)
 3. Make the **minimal** surgical edit — no reformatting, no scope creep
 4. Show diff:
    ```diff
-   --- MEMORY_kiss-executor.md (before)
-   +++ MEMORY_kiss-executor.md (after)
+   --- memory:kiss-executor (before)
+   +++ memory:kiss-executor (after)
    @@ -8,2 +8,3 @@
     ## Stack constraints
    +ORM: SQLAlchemy 2.x. Never swap this.
     Python 3.12+
    ```
 5. Ask: "Apply? (yes / edit / cancel)"
-6. On confirm: write file, set status to `applied`, add `applied_at: YYYY-MM-DD` field,
-   notify kiss-orchestrator to log it in `.kiss-claw/STATE.md` `accepted_insights`.
+6. On confirm: use `/kiss-store write <resource>` to persist the change, set status to `applied`,
+   add `applied_at: YYYY-MM-DD` field, notify kiss-orchestrator to log it in `state` `accepted_insights`.
 
 ---
 
 ## Archive rule
 
-When `.kiss-claw/INSIGHTS.md` exceeds 300 lines: move all `applied` and `rejected` entries to
-`.kiss-claw/INSIGHTS_ARCHIVE.md`, keep only `proposed`, `accepted`, and `deferred`.
+When the `insights` resource exceeds 300 lines: move all `applied` and `rejected` entries to
+`insights-archive` (note: this resource is not yet available in `/kiss-store` — see caveat),
+keep only `proposed`, `accepted`, and `deferred`.
