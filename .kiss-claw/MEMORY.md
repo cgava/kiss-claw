@@ -67,6 +67,16 @@ tests/                         ← test suite (test-store.sh)
 - kiss-verificator — review outputs kiss-executor → REVIEWS.md (utilise /kiss-store)
 - kiss-improver — analyse transcripts → INSIGHTS.md + TOKEN_STATS.md (utilise /kiss-store)
 
+## Known broken
+
+- **Hooks** (guard.sh, session-end.sh, agent-suggest.sh) — ne fonctionnent pas du tout. Marques broken, seront repares ulterieurement (voir ISSUE-005).
+
+## Ordre de priorite issues
+
+1. ISSUE-002 (tests Docker) — tres haute, prerequis pour valider le reste
+2. ISSUE-001 (gestion issues via kiss-store)
+3. Reste a prioriser
+
 ## Key decisions
 
 - 2026-04-09 — Bootstrap : kiss-claw s'utilise lui-même pour évoluer
