@@ -3,6 +3,16 @@
 Discovers test_*.py files under tests/scenarios/, imports each,
 calls run(ctx), and collects pass/fail/error results.
 
+Scenario contract:
+    - Each scenario is a ``test_*.py`` file under ``tests/scenarios/``.
+    - Must define a ``run(ctx)`` function.
+    - ``ctx`` is a dict with keys:
+        ``scenario_dir`` — absolute path to the scenarios directory.
+        ``workspace``    — absolute path to the project root.
+    - Scenarios should import helpers from tests.lib:
+        ``from tests.lib.assertions import ...``
+        ``from tests.lib.claude_cli import invoke``
+
 Usage:
     python -m tests.lib.runner
     python tests/lib/runner.py

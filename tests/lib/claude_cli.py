@@ -96,9 +96,11 @@ def invoke(
     if model:
         cmd.extend(["--model", model])
     if allowed_tools is not None:
-        cmd.extend(["--allowedTools", ",".join(allowed_tools)])
+        for tool in allowed_tools:
+            cmd.extend(["--allowedTools", tool])
     if disallowed_tools is not None:
-        cmd.extend(["--disallowedTools", ",".join(disallowed_tools)])
+        for tool in disallowed_tools:
+            cmd.extend(["--disallowedTools", tool])
     if max_budget_usd is not None:
         cmd.extend(["--max-budget-usd", str(max_budget_usd)])
     if mcp_config:
