@@ -225,12 +225,16 @@ def run(ctx):
         )
 
         # --- SET-3: Cleanup strategy ---
-        if all_passed:
+        # Default: preserve workspace for inspection.
+        # Set KISS_CLEANUP_ON_SUCCESS=1 to delete on success.
+        if all_passed and os.environ.get("KISS_CLEANUP_ON_SUCCESS") == "1":
             try:
                 shutil.rmtree(workspace)
             except OSError:
                 pass  # Best-effort cleanup
-        # On failure, workspace is preserved (LOG-5 handles the message)
+        else:
+            print(f"  Workspace preserved: {workspace}")
+        # On failure, workspace is always preserved (LOG-5 handles the message)
 
 
 def _write_log(ctx, *, result, ac_results, all_passed, workspace, duration):
