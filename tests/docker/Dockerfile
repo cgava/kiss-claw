@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   jq \
   ca-certificates \
   npm \
+  openssh-client \
   python3 \
   python3-venv \
   && rm -rf /var/lib/apt/lists/*
@@ -25,8 +26,14 @@ RUN python3 -m venv /opt/test-venv
 WORKDIR /workspace
 
 # Mount points (documented, not baked in):
-#   -v <host-kiss-claw>:/plugin:ro        — plugin source
+#   -v <host-kiss-claw>:/repo-source:ro    — repo source for git clone
 #   -v ~/.claude:/root/.claude:ro          — OAuth tokens
+#   -v $SSH_AUTH_SOCK:/ssh-agent           — (optional) SSH agent forwarding
+
+# Pre-populate known_hosts for github.com (needed for SSH clone)
+RUN mkdir -p /root/.ssh && \
+  ssh-keyscan -t ed25519,rsa github.com >> /root/.ssh/known_hosts 2>/dev/null && \
+  chmod 600 /root/.ssh/known_hosts
 
 ENV KISS_CLAW_DIR=.kiss-claw
 
