@@ -1,0 +1,3 @@
+[submodule "vendor/my-claude-minion"]
+	path = vendor/my-claude-minion
+	url = git@github.com:cgava-claudeai/my-claude-minion.git
