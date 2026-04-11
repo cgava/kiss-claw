@@ -1,0 +1,4 @@
+test: test_hello_world
+status: PASS
+exit_code: 0
+response_preview: {"type":"result","subtype":"success","is_error":false,"duration_ms":2263,"duration_api_ms":1646,"num_turns":1,"result":"hello world","stop_reason":"end_turn","session_id":"96703cb4-4664-4923-bbf7-7207

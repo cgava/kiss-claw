@@ -11,7 +11,8 @@ import time
 
 # Ensure project root is on sys.path so "tests.lib" is importable
 # when the runner loads this file via importlib.
-_project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+# Path: tests/scenarios/01-hello-world/test_hello_world.py -> project root is 3 levels up
+_project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
@@ -28,7 +29,7 @@ def run(ctx):
     """Execute the hello-world smoke test.
 
     Args:
-        ctx: dict with keys 'scenario_dir' and 'workspace'.
+        ctx: dict with keys 'scenario_dir', 'workspace', and 'dry_run'.
 
     Raises:
         AssertionError: If any acceptance criterion fails.
@@ -36,6 +37,7 @@ def run(ctx):
     ac_results = []
     result = None
     start_time = time.time()
+    dry_run = ctx.get("dry_run", False)
 
     # --- Invoke Claude with a deterministic prompt ---
     result = invoke(
@@ -43,6 +45,7 @@ def run(ctx):
         max_turns=1,
         output_format="json",
         model="haiku",
+        dry_run=dry_run,
     )
 
     # --- ERR-1 / ERR-2: Handle special exit codes before other checks ---
@@ -97,16 +100,21 @@ def run(ctx):
             raise
 
         # --- AC-5: Response contains "hello" (case-insensitive) ---
-        try:
-            response_text = result.json.get("result", "")
-            assert re.search(r"(?i)hello", response_text), (
-                f"AC-5 failed: response does not contain 'hello' (case-insensitive). "
-                f"Response: {response_text[:200]!r}"
-            )
-            ac_results.append(("AC-5", True, "Response contains 'hello'", ""))
-        except AssertionError as e:
-            ac_results.append(("AC-5", False, "Response contains 'hello'", str(e)))
-            raise
+        # In dry-run mode the fake result contains "[dry-run]", not "hello".
+        # We skip this check in dry-run mode.
+        if dry_run:
+            ac_results.append(("AC-5", True, "Response contains 'hello' — SKIP (dry-run)", ""))
+        else:
+            try:
+                response_text = result.json.get("result", "")
+                assert re.search(r"(?i)hello", response_text), (
+                    f"AC-5 failed: response does not contain 'hello' (case-insensitive). "
+                    f"Response: {response_text[:200]!r}"
+                )
+                ac_results.append(("AC-5", True, "Response contains 'hello'", ""))
+            except AssertionError as e:
+                ac_results.append(("AC-5", False, "Response contains 'hello'", str(e)))
+                raise
 
         # --- AC-6: session_id is a non-empty string ---
         try:
@@ -135,11 +143,8 @@ def _write_report(ctx, *, result, ac_results, duration):
     Wrapped to satisfy LOG-3: log writing must not cause the test to fail.
     """
     try:
-        log_dir = os.path.join(
-            ctx.get("workspace", ctx.get("scenario_dir", ".")),
-            "tests",
-            "scenarios",
-        )
+        # Write report to the scenario's own directory
+        log_dir = ctx.get("scenario_dir", ".")
         os.makedirs(log_dir, exist_ok=True)
         report_path = os.path.join(log_dir, "hello_world_report.md")
 

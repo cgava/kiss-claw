@@ -4,11 +4,13 @@ Discovers test_*.py files under tests/scenarios/, imports each,
 calls run(ctx), and collects pass/fail/error results.
 
 Scenario contract:
-    - Each scenario is a ``test_*.py`` file under ``tests/scenarios/``.
+    - Each scenario is a ``test_*.py`` file under ``tests/scenarios/``
+      (searched recursively in subdirectories).
     - Must define a ``run(ctx)`` function.
     - ``ctx`` is a dict with keys:
-        ``scenario_dir`` — absolute path to the scenarios directory.
+        ``scenario_dir`` — absolute path to the scenario's own directory.
         ``workspace``    — absolute path to the project root.
+        ``dry_run``      — bool, True if --dry-run flag was passed.
     - Scenarios should import helpers from tests.lib:
         ``from tests.lib.assertions import ...``
         ``from tests.lib.claude_cli import invoke``
@@ -16,6 +18,7 @@ Scenario contract:
 Usage:
     python -m tests.lib.runner
     python tests/lib/runner.py
+    python tests/lib/runner.py --dry-run
 """
 
 import importlib.util
@@ -26,10 +29,10 @@ from pathlib import Path
 
 
 def discover_scenarios(scenarios_dir: Path) -> list:
-    """Find all test_*.py files under scenarios_dir, sorted by name."""
+    """Find all test_*.py files under scenarios_dir (recursive), sorted by name."""
     if not scenarios_dir.is_dir():
         return []
-    return sorted(scenarios_dir.glob("test_*.py"))
+    return sorted(scenarios_dir.glob("**/test_*.py"))
 
 
 def load_and_run(scenario_path: Path, ctx: dict) -> dict:
@@ -91,7 +94,7 @@ def load_and_run(scenario_path: Path, ctx: dict) -> dict:
         }
 
 
-def run_all(scenarios_dir: Path, workspace: Path) -> list:
+def run_all(scenarios_dir: Path, workspace: Path, *, dry_run: bool = False) -> list:
     """Discover and run all scenarios. Returns list of result dicts."""
     scenarios = discover_scenarios(scenarios_dir)
 
@@ -99,17 +102,20 @@ def run_all(scenarios_dir: Path, workspace: Path) -> list:
         print(f"No test scenarios found in {scenarios_dir}")
         return []
 
-    print(f"Found {len(scenarios)} scenario(s) in {scenarios_dir}\n")
-
-    ctx = {
-        "scenario_dir": str(scenarios_dir),
-        "workspace": str(workspace),
-    }
+    prefix = "[DRY RUN] " if dry_run else ""
+    print(f"{prefix}Found {len(scenarios)} scenario(s) in {scenarios_dir}\n")
 
     results = []
     for scenario_path in scenarios:
         name = scenario_path.stem
-        print(f"  Running: {name} ... ", end="", flush=True)
+        # Each scenario gets its own directory as scenario_dir
+        ctx = {
+            "scenario_dir": str(scenario_path.parent),
+            "workspace": str(workspace),
+            "dry_run": dry_run,
+        }
+
+        print(f"  {prefix}Running: {name} ... ", end="", flush=True)
         result = load_and_run(scenario_path, ctx)
         results.append(result)
 
@@ -130,7 +136,7 @@ def run_all(scenarios_dir: Path, workspace: Path) -> list:
     return results
 
 
-def print_summary(results: list) -> int:
+def print_summary(results: list, *, dry_run: bool = False) -> int:
     """Print summary and return exit code (0 = all pass, 1 = any fail/error)."""
     total = len(results)
     passed = sum(1 for r in results if r["status"] == "pass")
@@ -138,15 +144,17 @@ def print_summary(results: list) -> int:
     errors = sum(1 for r in results if r["status"] == "error")
     total_duration = sum(r["duration"] for r in results)
 
+    prefix = "[DRY RUN] " if dry_run else ""
+
     print(f"\n{'=' * 50}")
-    print(f"Results: {total} total, {passed} passed, {failed} failed, {errors} errors")
+    print(f"{prefix}Results: {total} total, {passed} passed, {failed} failed, {errors} errors")
     print(f"Duration: {total_duration:.1f}s")
 
     if failed == 0 and errors == 0:
-        print("Status: ALL PASSED")
+        print(f"{prefix}Status: ALL PASSED")
         return 0
     else:
-        print("Status: FAILURES DETECTED")
+        print(f"{prefix}Status: FAILURES DETECTED")
         if failed > 0:
             print("\nFailed scenarios:")
             for r in results:
@@ -162,6 +170,9 @@ def print_summary(results: list) -> int:
 
 def main():
     """Entry point — discover and run all test scenarios."""
+    # Parse --dry-run flag
+    dry_run = "--dry-run" in sys.argv
+
     # Determine project root (tests/lib/runner.py -> project root is 2 levels up)
     runner_path = Path(__file__).resolve()
     tests_dir = runner_path.parent.parent
@@ -170,18 +181,21 @@ def main():
     scenarios_dir = tests_dir / "scenarios"
     workspace = project_root
 
-    print(f"kiss-claw test runner")
+    prefix = "[DRY RUN] " if dry_run else ""
+    print(f"{prefix}kiss-claw test runner")
     print(f"Scenarios: {scenarios_dir}")
     print(f"Workspace: {workspace}")
+    if dry_run:
+        print("Mode: dry-run (no LLM calls)")
     print(f"{'=' * 50}\n")
 
-    results = run_all(scenarios_dir, workspace)
+    results = run_all(scenarios_dir, workspace, dry_run=dry_run)
 
     if not results:
         print("No scenarios to run. Create test_*.py files in tests/scenarios/")
         sys.exit(0)
 
-    exit_code = print_summary(results)
+    exit_code = print_summary(results, dry_run=dry_run)
     sys.exit(exit_code)
 
 

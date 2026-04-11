@@ -1,0 +1,14 @@
+test: test_konvert_agents
+status: FAIL
+exit_code: 0
+duration: 280.3s
+cost: (unknown)
+session_id: 1ee9cca2-7992-462c-9af5-4b4af7699151
+workspace: /tmp/kiss-claw-konvert-4fbbibd8
+
+--- Acceptance Criteria Results ---
+AC-1: PASS — Exit code is 0
+AC-2: PASS — JSON response is parseable
+AC-3: FAIL — PLAN.md exists with phase content — File does not exist: /tmp/kiss-claw-konvert-4fbbibd8/.kiss-claw/PLAN.md
+
+WORKSPACE PRESERVED FOR INSPECTION: /tmp/kiss-claw-konvert-4fbbibd8

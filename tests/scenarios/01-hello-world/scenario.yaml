@@ -1,0 +1,22 @@
+name: hello-world
+description: |
+  Create a simple bash script that outputs "Hello, World!".
+  Validates full orchestrator → executor → verificator → improver loop.
+
+request: |
+  Create a bash script named "hello.sh" that outputs "Hello, World!"
+  when executed. The script should be executable and follow bash best practices.
+
+expected_outputs:
+  - file: hello.sh
+    content_match: 'echo.*Hello.*World'
+    must_exist: true
+    is_executable: true
+    golden_file: expected/hello.sh.gold
+
+timeout: 300
+
+tags:
+  - basic
+  - orchestrator
+  - integration

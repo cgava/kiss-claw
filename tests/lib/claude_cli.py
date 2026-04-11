@@ -45,6 +45,7 @@ def invoke(
     timeout: int = 60,
     extra_flags: Optional[List[str]] = None,
     cwd: Optional[str] = None,
+    dry_run: bool = False,
 ) -> ClaudeResult:
     """Run `claude -p "prompt"` and return a structured result.
 
@@ -64,6 +65,7 @@ def invoke(
         timeout: Subprocess timeout in seconds (default 60).
         extra_flags: Additional raw CLI flags to append.
         cwd: Working directory for the subprocess.
+        dry_run: If True, don't execute — print the command and return a fake result.
 
     Returns:
         ClaudeResult with stdout, stderr, exit_code, json, session_id.
@@ -112,6 +114,23 @@ def invoke(
 
     # Prompt is always last
     cmd.append(prompt)
+
+    # --- DRY RUN: print command and return fake result ---
+    if dry_run:
+        cmd_str = " ".join(cmd)
+        print(f"[DRY RUN] Would execute: {cmd_str[:500]}")
+        fake_json = {
+            "result": "[dry-run]",
+            "is_error": False,
+            "session_id": "dry-run-000",
+        }
+        return ClaudeResult(
+            stdout=json.dumps(fake_json),
+            stderr="",
+            exit_code=0,
+            json=fake_json,
+            session_id="dry-run-000",
+        )
 
     # Execute
     try:
