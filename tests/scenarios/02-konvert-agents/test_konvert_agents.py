@@ -87,8 +87,8 @@ def run(ctx):
     """
     dry_run = ctx.get("dry_run", False)
 
-    # --- SET-1: Create isolated temporary workspace ---
-    workspace = tempfile.mkdtemp(prefix="kiss-claw-konvert-")
+    # --- SET-1: Create isolated temporary workspace (skip in dry-run) ---
+    workspace = tempfile.mkdtemp(prefix="kiss-claw-konvert-") if not dry_run else "(dry-run)"
     ws = Path(workspace)
     all_passed = False
     ac_results = []  # list of (id, passed, description, error)
@@ -113,9 +113,9 @@ def run(ctx):
 
         # --- ERR-1: Timeout ---
         if result.exit_code == -1:
-            ac_results.append(("AC-1", False, "Exit code is 0", f"timeout after 900s"))
+            ac_results.append(("AC-1", False, "Exit code is 0", f"timeout after 1200s"))
             raise AssertionError(
-                f"timeout: claude invocation timed out after 900 seconds"
+                f"timeout: claude invocation timed out after 1200 seconds"
             )
 
         # --- ERR-2: Binary not found ---
