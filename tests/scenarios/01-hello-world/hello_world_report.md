@@ -3,9 +3,9 @@
 | Field | Value |
 |-------|-------|
 | Status | **PASS** |
-| Date | 2026-04-11T05:01:06Z |
-| Duration | 8.8s |
-| Session ID | `9d3785dd-de41-4d28-8d0d-983e97517e42` |
+| Date | 2026-04-11T06:10:39Z |
+| Duration | 0.0s |
+| Session ID | `dry-run-000` |
 
 ## Environment
 
@@ -81,8 +81,10 @@
 | kiss-executor:a02ffc3 | kiss-executor | n/a | done |
 | kiss-verificator:a2c8e8d | kiss-verificator | n/a | done |
 | kiss-verificator:ab0c6e1 | kiss-verificator | n/a | done |
-| kiss-executor:a251644 | kiss-executor | 118s | done |
-| kiss-executor:a83d4e5 | kiss-executor | 158s | done |
+| kiss-executor:a251644 | kiss-executor | n/a | done |
+| kiss-executor:a83d4e5 | kiss-executor | n/a | done |
+| kiss-executor:a53638f | kiss-executor | 248s | done |
+| kiss-verificator:aab024a | kiss-verificator | 84s | done |
 
 ## Artifacts Produced
 
@@ -96,7 +98,7 @@ _No workspace path provided._
 | AC-2 | PASS | stdout is non-empty |
 | AC-3 | PASS | JSON parsed with 'result' key |
 | AC-4 | PASS | is_error is False |
-| AC-5 | PASS | Response contains 'hello' |
+| AC-5 | PASS | Response contains 'hello' — SKIP (dry-run) |
 | AC-6 | PASS | session_id is non-empty string |
 
 ## Diagnosis

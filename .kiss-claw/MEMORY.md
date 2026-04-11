@@ -82,6 +82,17 @@ tests/                         ← test suite (test-store.sh)
 2. ISSUE-001 (gestion issues via kiss-store)
 3. Reste a prioriser
 
+## Test framework
+
+- **Location**: `tests/`
+- **Run locally**: `python tests/lib/runner.py` (or `python -m tests.lib.runner`)
+- **Run in Docker**: `./tests/docker/build-and-test.sh [commit]` (optional `--ssh` flag)
+- **Scenario convention**: `tests/scenarios/<NN-name>/test_*.py` with a `run(ctx)` function
+- **Key modules**: `runner.py` (discovery + execution), `assertions.py` (assert helpers), `claude_cli.py` (CLI wrapper), `report.py` (standard reports)
+- **Current tests**: `01-hello-world` (smoke), `02-konvert-agents` (integration, passing)
+- **Dry-run**: `python3 tests/lib/runner.py --dry-run` validates deps/paths without calling LLM
+- **Cost**: ~$0.05-0.15 per invocation (haiku, effort low)
+
 ## Key decisions
 
 - 2026-04-09 — Bootstrap : kiss-claw s'utilise lui-même pour évoluer
