@@ -4,38 +4,71 @@ set -euo pipefail
 ACTION="${1:?usage: store.sh <action> <resource> [content...]}"
 RESOURCE="${2:-}"
 KC_DIR="${KISS_CLAW_DIR:-.kiss-claw}"
+AGENTS_DIR="${KISS_CLAW_AGENTS_DIR:-$KC_DIR/agents}"
+PROJECT_DIR="${KISS_CLAW_PROJECT_DIR:-$KC_DIR/project}"
+SESSIONS_DIR="${KISS_CLAW_SESSIONS_DIR:-$KC_DIR/sessions}"
+
+# Require KISS_CLAW_SESSION for session-scoped resources
+require_session() {
+  if [[ -z "${KISS_CLAW_SESSION:-}" ]]; then
+    echo "error: KISS_CLAW_SESSION is required for resource '$1' (session-scoped)" >&2
+    exit 1
+  fi
+}
 
 # Resolve resource name to file path
 resolve() {
   case "$1" in
-    plan)          echo "$KC_DIR/PLAN.md" ;;
-    state)         echo "$KC_DIR/STATE.md" ;;
-    scratch)       echo "$KC_DIR/SCRATCH.md" ;;
-    memory)        echo "$KC_DIR/MEMORY.md" ;;
-    memory:*)      echo "$KC_DIR/MEMORY_${1#memory:}.md" ;;
-    reviews)       echo "$KC_DIR/REVIEWS.md" ;;
-    insights)      echo "$KC_DIR/INSIGHTS.md" ;;
-    analyzed)      echo "$KC_DIR/ANALYZED.md" ;;
-    token-stats)   echo "$KC_DIR/TOKEN_STATS.md" ;;
-    checkpoint)    echo "$KC_DIR/CHECKPOINT.md" ;;
+    # session-scoped resources
+    plan)          require_session "$1"; echo "$SESSIONS_DIR/$KISS_CLAW_SESSION/PLAN.md" ;;
+    state)         require_session "$1"; echo "$SESSIONS_DIR/$KISS_CLAW_SESSION/STATE.md" ;;
+    reviews)       require_session "$1"; echo "$SESSIONS_DIR/$KISS_CLAW_SESSION/REVIEWS.md" ;;
+    scratch)       require_session "$1"; echo "$SESSIONS_DIR/$KISS_CLAW_SESSION/SCRATCH.md" ;;
+    checkpoint)    require_session "$1"; echo "$SESSIONS_DIR/$KISS_CLAW_SESSION/CHECKPOINT.md" ;;
+    # agent-scoped resources
+    memory:kiss-*) echo "$AGENTS_DIR/MEMORY_${1#memory:}.md" ;;
+    insights)      echo "$AGENTS_DIR/INSIGHTS.md" ;;
+    analyzed)      echo "$AGENTS_DIR/ANALYZED.md" ;;
+    # project-scoped resources
+    memory)        echo "$PROJECT_DIR/MEMORY.md" ;;
+    sessions)      echo "$PROJECT_DIR/SESSIONS.json" ;;
     *)             echo "unknown resource: $1" >&2; exit 1 ;;
   esac
 }
 
-# Reverse mapping: filename (without .md) to resource name
+# Reverse mapping: filename (without extension) to resource name
+# Second arg is the category (agents|project|sessions)
 reverse_map() {
-  case "$1" in
-    PLAN)          echo "plan" ;;
-    STATE)         echo "state" ;;
-    SCRATCH)       echo "scratch" ;;
-    MEMORY)        echo "memory" ;;
-    MEMORY_*)      echo "memory:${1#MEMORY_}" ;;
-    REVIEWS)       echo "reviews" ;;
-    INSIGHTS)      echo "insights" ;;
-    ANALYZED)      echo "analyzed" ;;
-    TOKEN_STATS)   echo "token-stats" ;;
-    CHECKPOINT)    echo "checkpoint" ;;
-    *)             ;; # skip unknown files silently
+  local base="$1"
+  local category="${2:-}"
+  case "$category" in
+    agents)
+      case "$base" in
+        MEMORY_kiss-*) echo "memory:${base#MEMORY_}" ;;
+        INSIGHTS)      echo "insights" ;;
+        ANALYZED)      echo "analyzed" ;;
+        *)             ;; # skip unknown
+      esac
+      ;;
+    project)
+      case "$base" in
+        MEMORY)        echo "memory" ;;
+        SESSIONS)      echo "sessions" ;;
+        *)             ;; # skip unknown
+      esac
+      ;;
+    sessions)
+      case "$base" in
+        PLAN)          echo "plan" ;;
+        STATE)         echo "state" ;;
+        REVIEWS)       echo "reviews" ;;
+        SCRATCH)       echo "scratch" ;;
+        CHECKPOINT)    echo "checkpoint" ;;
+        *)             ;; # skip unknown
+      esac
+      ;;
+    *)
+      ;; # skip unknown category
   esac
 }
 
@@ -101,12 +134,34 @@ case "$ACTION" in
     ;;
 
   list)
-    for f in "$KC_DIR"/*.md; do
+    # Scan agents directory
+    for f in "$AGENTS_DIR"/*.md; do
       [[ -f "$f" ]] || continue
       base=$(basename "$f" .md)
-      result=$(reverse_map "$base")
+      result=$(reverse_map "$base" agents)
       [[ -n "$result" ]] && echo "$result"
     done
+    # Scan project directory
+    for f in "$PROJECT_DIR"/*.md "$PROJECT_DIR"/*.json; do
+      [[ -f "$f" ]] || continue
+      base=$(basename "$f")
+      base="${base%.*}"
+      result=$(reverse_map "$base" project)
+      [[ -n "$result" ]] && echo "$result"
+    done
+    # Scan sessions directory (all sessions)
+    if [[ -d "$SESSIONS_DIR" ]]; then
+      for session_dir in "$SESSIONS_DIR"/*/; do
+        [[ -d "$session_dir" ]] || continue
+        session_name=$(basename "$session_dir")
+        for f in "$session_dir"*.md; do
+          [[ -f "$f" ]] || continue
+          base=$(basename "$f" .md)
+          result=$(reverse_map "$base" sessions)
+          [[ -n "$result" ]] && echo "$result ($session_name)"
+        done
+      done
+    fi
     ;;
 
   *)
