@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | **PASS** |
-| Date | 2026-04-11T06:10:39Z |
+| Date | 2026-04-11T12:58:32Z |
 | Duration | 0.0s |
 | Session ID | `dry-run-000` |
 
@@ -85,6 +85,11 @@
 | kiss-executor:a83d4e5 | kiss-executor | n/a | done |
 | kiss-executor:a53638f | kiss-executor | 248s | done |
 | kiss-verificator:aab024a | kiss-verificator | 84s | done |
+| Explore:a6631e9 | Explore | n/a | done |
+| kiss-executor:a589678 | kiss-executor | n/a | done |
+| kiss-verificator:ac527a6 | kiss-verificator | n/a | done |
+| kiss-executor:a33b3ab | kiss-executor | 56s | done |
+| kiss-verificator:a56cb3c | kiss-verificator | 37s | done |
 
 ## Artifacts Produced
 
