@@ -20,7 +20,7 @@ that ran the session — or to global config if the session was untagged (genera
 `KISS_CLAW_SESSION` is provided by kiss-orchestrator when delegating tasks. All session-scoped
 resources (plan, state, reviews, scratch, checkpoint) require this variable to be exported.
 
-Agent-scoped resources (`memory:kiss-improver`, `insights`, `analyzed`, `token-stats`) and
+Agent-scoped resources (`memory:kiss-improver`, `insights`, `analyzed`) and
 project-scoped resources (`memory`) are accessible without a session — they persist across
 all sessions.
 

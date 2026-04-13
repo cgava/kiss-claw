@@ -62,12 +62,12 @@ check_protected() {
 
   # --- sessions/*/ files ---
   # PLAN.md, STATE.md, CHECKPOINT.md in any session directory
-  for f in PLAN.md STATE.md CHECKPOINT.md; do
+  for f in PLAN.md STATE.md CHECKPOINT.md REVIEWS.md; do
     if [[ "$target" == "$f" || "$target" == *"/$f" ]]; then
       # Check if path is inside sessions dir (any session subdirectory)
       if [[ "$target" == *"$SESSIONS_DIR/"*"/$f" || "$target" == "$SESSIONS_DIR/"*"/$f" || "$target" == "$f" ]]; then
         echo "BLOCK: $target is a protected session file. Only kiss-orchestrator may write to it via /kiss-store."
-        echo "  Owners: PLAN.md → kiss-orchestrator, STATE.md → kiss-orchestrator, CHECKPOINT.md → kiss-orchestrator"
+        echo "  Owners: PLAN.md/STATE.md/CHECKPOINT.md → kiss-orchestrator, REVIEWS.md → kiss-verificator"
         exit 1
       fi
     fi
@@ -97,7 +97,7 @@ check_bash_protected() {
   fi
 
   # Session-scoped files
-  for f in PLAN.md STATE.md CHECKPOINT.md; do
+  for f in PLAN.md STATE.md CHECKPOINT.md REVIEWS.md; do
     if echo "$cmd" | grep -qE "(>|>>)\s*[^ ]*${f}(\s|$)"; then
       echo "BLOCK: bash command attempts to write to protected session file $f."
       exit 1
