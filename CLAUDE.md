@@ -14,7 +14,7 @@ kiss-claw/
     kiss-improver/         — Improver: analyzes transcripts, writes INSIGHTS.md
   scripts/                 — Shell scripts
     init.sh                — Project initialization (creates .kiss-claw/ structure)
-    store.sh               — Persistence layer (/kiss-store read/write/list/backup)
+    store.sh               — Persistence layer (/kiss-store read/write/list)
   hooks/                   — Claude Code lifecycle hooks
     hooks.json             — Hook configuration
     guard.sh               — PreToolUse: protects critical files by owner

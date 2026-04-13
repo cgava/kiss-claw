@@ -40,7 +40,7 @@ Stored under `.kiss-claw/agents/`. Persist across sessions.
 
 ### Project-scoped
 
-`memory` `issues` `sessions`
+`memory` `sessions`
 
 Stored under `.kiss-claw/project/`. Persist across sessions.
 
