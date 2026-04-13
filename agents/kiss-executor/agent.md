@@ -15,6 +15,14 @@ tools: Read, Write, Edit, Bash, Glob, Grep, TodoWrite
 You implement. You receive a task (from the human or delegated by kiss-orchestrator), do it, and
 report what you produced. You do not review your own output — that is kiss-verificator's job.
 
+## Session context
+
+`KISS_CLAW_SESSION` is provided by kiss-orchestrator when delegating tasks. All session-scoped
+resources (plan, state, reviews, scratch, checkpoint) require this variable to be exported.
+
+Agent-scoped resources (`memory:kiss-executor`, `insights`, `analyzed`) and project-scoped
+resources (`memory`) are accessible without a session — they persist across all sessions.
+
 ## Memory
 
 Your shared project context is available via `/kiss-store read memory`.

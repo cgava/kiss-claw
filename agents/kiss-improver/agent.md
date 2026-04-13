@@ -15,6 +15,15 @@ tools: Read, Write, Edit, Bash, Glob, Grep
 You extract improvement intelligence from past sessions. Each finding is scoped to the agent
 that ran the session — or to global config if the session was untagged (general).
 
+## Session context
+
+`KISS_CLAW_SESSION` is provided by kiss-orchestrator when delegating tasks. All session-scoped
+resources (plan, state, reviews, scratch, checkpoint) require this variable to be exported.
+
+Agent-scoped resources (`memory:kiss-improver`, `insights`, `analyzed`, `token-stats`) and
+project-scoped resources (`memory`) are accessible without a session — they persist across
+all sessions.
+
 ## Memory
 
 Use `/kiss-store read memory` (auto-loaded) for shared project context.

@@ -11,6 +11,17 @@ AGENT_FILE="$PROJECT_DIR/.poc-session-agent"
 DATE=$(date +%Y-%m-%d)
 TIME=$(date +%H:%M)
 
+# --- 0. Require active session ---
+# Session-scoped resources (state, checkpoint) require KISS_CLAW_SESSION.
+# If not set, no session is active — skip checkpoint entirely.
+if [[ -z "${KISS_CLAW_SESSION:-}" ]]; then
+  # Still clean up agent file if present
+  rm -f "$AGENT_FILE"
+  exit 0
+fi
+
+export KISS_CLAW_SESSION
+
 # --- 1. Write CHECKPOINT.md via store.sh ---
 CKPT="# CHECKPOINT — $DATE $TIME"
 CKPT="$CKPT
@@ -40,7 +51,8 @@ if git -C "$PROJECT_DIR" rev-parse --is-inside-work-tree &>/dev/null; then
 $(git -C "$PROJECT_DIR" diff --name-only HEAD 2>/dev/null)
 $(git -C "$PROJECT_DIR" ls-files --others --exclude-standard 2>/dev/null)"
 else
-  STATE_FILE="$PROJECT_DIR/$KC_DIR/STATE.md"
+  SESSIONS_DIR="${KISS_CLAW_SESSIONS_DIR:-$KC_DIR/sessions}"
+  STATE_FILE="$SESSIONS_DIR/$KISS_CLAW_SESSION/STATE.md"
   CKPT="$CKPT
 $(find "$PROJECT_DIR" -maxdepth 3 -newer "$STATE_FILE" -not -path "*/.git/*" \
     -not -name "CHECKPOINT.md" -not -name ".poc-session-agent" 2>/dev/null)"

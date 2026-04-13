@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "mkdir -p \"${KISS_CLAW_DIR:-.kiss-claw}\""
+            "command": "KC_DIR=\"${KISS_CLAW_DIR:-.kiss-claw}\"; mkdir -p \"${KISS_CLAW_AGENTS_DIR:-$KC_DIR/agents}\" \"${KISS_CLAW_PROJECT_DIR:-$KC_DIR/project}\" \"${KISS_CLAW_SESSIONS_DIR:-$KC_DIR/sessions}\""
           }
         ]
       }
