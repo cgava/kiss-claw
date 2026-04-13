@@ -87,7 +87,12 @@ create_subdir() {
     fi
     # Ensure parent exists
     mkdir -p "$(dirname "$dir_path")"
-    # Remove existing dir/link if present before creating symlink
+    # Refuse to replace a real directory — rm -rf on re-init would be destructive
+    if [[ -d "$dir_path" && ! -L "$dir_path" ]]; then
+      echo "  Error: '$dir_path' is a real directory (not a symlink). Remove it manually before re-initializing as a symlink."
+      exit 1
+    fi
+    # Remove existing symlink if present before creating new one
     if [[ -L "$dir_path" ]]; then
       rm "$dir_path"
     fi
@@ -267,7 +272,7 @@ do_init() {
   # --- 2.5 Update .gitignore ---
   echo ""
   if [ -f .gitignore ]; then
-    if ! grep -q "^${KC_DIR}$" .gitignore 2>/dev/null; then
+    if ! grep -qF "$KC_DIR" .gitignore 2>/dev/null; then
       echo "$KC_DIR" >> .gitignore
       echo "  added $KC_DIR to .gitignore"
     else
