@@ -1,5 +1,5 @@
-.kiss-claw
 __pycache__/
 *.pyc
 .venv/
 tests/.venv/
+.kiss-claw/sessions

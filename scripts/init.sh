@@ -5,6 +5,7 @@
 # Usage:
 #   kiss-claw-init              # creates .kiss-claw/ with templates (interactive if tty)
 #   kiss-claw-init --status     # shows what's already initialized
+#   kiss-claw-init --migrate    # migrates v7 (flat) layout to v8 (sub-directories)
 
 set -euo pipefail
 
@@ -283,6 +284,10 @@ do_init() {
     echo "  created .gitignore with $KC_DIR"
   fi
 
+  # --- 2.6 Write layout version ---
+  echo "8" > "$KC_DIR/VERSION"
+  echo "  wrote VERSION = 8"
+
   echo ""
   echo "Done. Structure:"
   echo "  $KC_DIR/"
@@ -295,15 +300,152 @@ do_init() {
   echo "  2. Start a Claude Code session -- the SessionStart hook will show the agent menu"
 }
 
+do_migrate() {
+  # --- Check KC_DIR exists ---
+  if [[ ! -d "$KC_DIR" ]]; then
+    echo "Error: Nothing to migrate — $KC_DIR does not exist."
+    exit 1
+  fi
+
+  # --- Read current version ---
+  local current_version="7"
+  if [[ -f "$KC_DIR/VERSION" ]]; then
+    current_version="$(cat "$KC_DIR/VERSION")"
+  fi
+
+  if [[ "$current_version" = "8" ]]; then
+    echo "Already at layout v8 — nothing to do."
+    exit 0
+  fi
+
+  echo "Migrating $KC_DIR from layout v$current_version to v8..."
+  echo ""
+
+  # Resolve sub-directory paths (respect env overrides)
+  local agents_dir="${KISS_CLAW_AGENTS_DIR:-$DEFAULT_AGENTS_DIR}"
+  local project_dir="${KISS_CLAW_PROJECT_DIR:-$DEFAULT_PROJECT_DIR}"
+  local sessions_dir="${KISS_CLAW_SESSIONS_DIR:-$DEFAULT_SESSIONS_DIR}"
+
+  # --- Create sub-directories ---
+  mkdir -p "$agents_dir" "$project_dir" "$sessions_dir"
+  echo "Created sub-directories: agents/, project/, sessions/"
+
+  local moved=()
+  local skipped=()
+
+  # Helper: move file if source exists; skip if target already exists
+  move_file() {
+    local src="$1"
+    local dst="$2"
+    if [[ ! -f "$src" ]]; then
+      return
+    fi
+    if [[ -f "$dst" ]]; then
+      skipped+=("$src -> $dst (target exists, skipped)")
+      return
+    fi
+    mv "$src" "$dst"
+    moved+=("$src -> $dst")
+  }
+
+  # --- Move agent files ---
+  for f in "$KC_DIR"/MEMORY_kiss-*.md; do
+    [[ -f "$f" ]] || continue
+    move_file "$f" "$agents_dir/$(basename "$f")"
+  done
+  move_file "$KC_DIR/INSIGHTS.md" "$agents_dir/INSIGHTS.md"
+  move_file "$KC_DIR/ANALYZED.md" "$agents_dir/ANALYZED.md"
+
+  # --- Move project files ---
+  move_file "$KC_DIR/MEMORY.md" "$project_dir/MEMORY.md"
+  move_file "$KC_DIR/ISSUES.md" "$project_dir/ISSUES.md"
+
+  # --- Move session files ---
+  # Determine session name from STATE.md mtime (or fallback to now)
+  local session_name
+  if [[ -f "$KC_DIR/STATE.md" ]]; then
+    session_name="$(date -r "$KC_DIR/STATE.md" '+%Y%m%d-%H%M%S')"
+  else
+    session_name="$(date '+%Y%m%d-%H%M%S')"
+  fi
+
+  local session_dir="$sessions_dir/$session_name"
+  local session_files=(PLAN.md STATE.md REVIEWS.md SCRATCH.md CHECKPOINT.md)
+  local has_session_files=false
+
+  for f in "${session_files[@]}"; do
+    if [[ -f "$KC_DIR/$f" ]]; then
+      has_session_files=true
+      break
+    fi
+  done
+
+  if [[ "$has_session_files" = true ]]; then
+    mkdir -p "$session_dir"
+    for f in "${session_files[@]}"; do
+      move_file "$KC_DIR/$f" "$session_dir/$f"
+    done
+    echo "Created session: $session_name"
+  fi
+
+  # --- Initialize SESSIONS.json if missing ---
+  if [[ ! -f "$project_dir/SESSIONS.json" ]]; then
+    if [[ "$has_session_files" = true ]]; then
+      cat > "$project_dir/SESSIONS.json" <<EOJSON
+{"sessions":[{"id":"$session_name","created":"$(date -r "$sessions_dir/$session_name" -Iseconds 2>/dev/null || date -Iseconds)"}]}
+EOJSON
+    else
+      echo '{"sessions":[]}' > "$project_dir/SESSIONS.json"
+    fi
+    echo "Created SESSIONS.json"
+  else
+    echo "Skipped SESSIONS.json (already exists)"
+  fi
+
+  # --- Remove TOKEN_STATS.md (disabled, see ISSUE-006) ---
+  if [[ -f "$KC_DIR/TOKEN_STATS.md" ]]; then
+    rm "$KC_DIR/TOKEN_STATS.md"
+    echo "Removed TOKEN_STATS.md (disabled, see ISSUE-006)"
+  fi
+
+  # --- Write VERSION ---
+  echo "8" > "$KC_DIR/VERSION"
+
+  # --- Summary ---
+  echo ""
+  echo "=== Migration summary ==="
+  if [[ ${#moved[@]} -gt 0 ]]; then
+    echo "Moved:"
+    for m in "${moved[@]}"; do
+      echo "  $m"
+    done
+  fi
+  if [[ ${#skipped[@]} -gt 0 ]]; then
+    echo "Skipped:"
+    for s in "${skipped[@]}"; do
+      echo "  $s"
+    done
+  fi
+  echo "Layout version: 8"
+  echo "========================="
+}
+
 # --- main ---
 
 case "${1:-}" in
   --status)
     show_status
     ;;
+  --migrate)
+    do_migrate
+    ;;
   --help|-h)
-    echo "Usage: $(basename "$0") [--status|--help]"
+    echo "Usage: $(basename "$0") [--status|--migrate|--help]"
     echo "  Run from your project root to initialize kiss-claw."
+    echo ""
+    echo "Options:"
+    echo "  --status    Show what's already initialized"
+    echo "  --migrate   Migrate v7 (flat) layout to v8 (sub-directories)"
     echo ""
     echo "Environment variables:"
     echo "  KISS_CLAW_DIR          Root directory (default: .kiss-claw)"

@@ -1,0 +1,16 @@
+{
+  "sessions": [
+    {
+      "id": "20260413-220308",
+      "created": "2026-04-13T22:03:08",
+      "status": "done",
+      "title": "ISSUE-002: Functional Test Framework (migrated from v6)"
+    },
+    {
+      "id": "20260413-223433",
+      "created": "2026-04-13T22:34:33",
+      "status": "in_progress",
+      "title": "Refonte persistence multi-session"
+    }
+  ]
+}
