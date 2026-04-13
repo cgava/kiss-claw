@@ -26,19 +26,38 @@ Thin wrapper around `scripts/store.sh`. All kiss-claw state is accessed through 
 
 ## Resources
 
-`plan` `state` `scratch` `memory` `memory:<agent>` `reviews` `insights` `analyzed` `token-stats` `checkpoint`
+### Session-scoped (require `KISS_CLAW_SESSION`)
+
+`plan` `state` `scratch` `reviews` `checkpoint`
+
+These resources are stored per-session under `.kiss-claw/sessions/<session-id>/`.
+
+### Agent-scoped
+
+`memory:<agent>` `insights` `analyzed`
+
+Stored under `.kiss-claw/agents/`. Persist across sessions.
+
+### Project-scoped
+
+`memory` `issues` `sessions`
+
+Stored under `.kiss-claw/project/`. Persist across sessions.
 
 ## Examples
 
 ```bash
-# Read the current plan
+# Read the current session plan
 scripts/store.sh read plan
 
-# Check if scratch exists
+# Check if scratch exists in current session
 scripts/store.sh exists scratch
 
 # List all resources
 scripts/store.sh list
+
+# List all sessions
+scripts/store.sh list sessions
 
 # Write content to scratch
 scripts/store.sh write scratch "## Notes"
@@ -51,6 +70,9 @@ scripts/store.sh update state current_step "1.3 Tests"
 
 # Read agent-specific memory
 scripts/store.sh read memory:kiss-executor
+
+# Read project-level shared memory
+scripts/store.sh read memory
 ```
 
 ## Execution

@@ -1,14 +1,35 @@
 # kiss-claw
 
 Plugin Claude Code multi-agent avec état persistant, boucle d'amélioration continue,
-checkpointing, dry-run, protection des fichiers critiques, et suivi de consommation tokens.
+checkpointing, dry-run, protection des fichiers critiques, et support multi-session.
 Zéro dépendance externe.
 
 Keep It Simple, Stupid ! The simplest yet ambitious Claude AI harness for code. Stupidly efficient.
 
 ---
 
-## Nouveautés v5
+## Nouveautés v7
+
+| Feature | Détail |
+|---------|--------|
+| Persistance multi-session | Chaque session a son propre dossier sous `.kiss-claw/sessions/` |
+| Structure 3 dossiers | État réparti en `agents/`, `project/`, et `sessions/` |
+| Gestion des sessions | Variable `KISS_CLAW_SESSION`, `list sessions`, support `resume` |
+| Chemins configurables | Chaque sous-dossier surchargeable via variable d'environnement dédiée |
+
+<details>
+<summary>Nouveautés v6</summary>
+
+| Feature | Détail |
+|---------|--------|
+| Persistance `/kiss-store` | Tous les agents utilisent `scripts/store.sh` pour les lectures/écritures |
+| Backup on write | Chaque écriture crée un backup automatique |
+| I/O centralisé | Point d'entrée unique pour toutes les opérations de persistance |
+
+</details>
+
+<details>
+<summary>Nouveautés v5</summary>
 
 | Feature | Détail |
 |---------|--------|
@@ -16,7 +37,8 @@ Keep It Simple, Stupid ! The simplest yet ambitious Claude AI harness for code. 
 | Checkpointing | `/compact` écrit `CHECKPOINT.md` avant perte de contexte |
 | Dry-run mode | `dry-run on/off` — kiss-executor décrit sans écrire |
 | Token budget | Limite par step, alerte si dépassement |
-| Token tracking | Le kiss-improver mesure la conso de chaque session → `TOKEN_STATS.md` |
+
+</details>
 
 ---
 
@@ -29,10 +51,11 @@ SessionStart hook
 kiss-orchestrator   planifie, STATE.md, délègue, gère dry-run + budget
 kiss-executor       implémente (respects dry-run, s'arrête si budget warn)
 kiss-verificator    review outputs kiss-executor → REVIEWS.md
-kiss-improver       analyse transcripts → INSIGHTS.md + TOKEN_STATS.md
+kiss-improver       analyse transcripts → INSIGHTS.md
 
-PreToolUse hook  bloque écritures sur fichiers protégés
-SessionEnd hook  écrit CHECKPOINT.md + update STATE.md log
+/kiss-store          couche de persistance centralisée (scripts/store.sh)
+PreToolUse hook      bloque écritures sur fichiers protégés
+SessionEnd hook      écrit CHECKPOINT.md + update STATE.md log
 ```
 
 ---
@@ -73,8 +96,18 @@ Par défaut, les fichiers d'état vivent dans `.kiss-claw/` à la racine du proj
 Surcharger via `.claude/settings.local.json` :
 
 ```json
-{ "envVars": { "KISS_CLAW_DIR": "mon/chemin/custom" } }
+{
+  "envVars": {
+    "KISS_CLAW_DIR": "mon/chemin/custom",
+    "KISS_CLAW_AGENTS_DIR": "mon/chemin/custom/agents",
+    "KISS_CLAW_PROJECT_DIR": "mon/chemin/custom/project",
+    "KISS_CLAW_SESSIONS_DIR": "mon/chemin/custom/sessions"
+  }
+}
 ```
+
+Chaque sous-dossier peut être surchargé indépendamment -- utile pour créer des
+symlinks vers un emplacement partagé entre repos.
 
 ### Désinstallation
 
@@ -88,21 +121,36 @@ claude plugin uninstall kiss-claw@kiss-claw
 
 ```
 ton-projet/
-└── .kiss-claw/                          ← tous les fichiers d'état (configurable via KISS_CLAW_DIR)
-    ├── PLAN.md                          ← roadmap (kiss-orchestrator)
-    ├── STATE.md                         ← état courant + mode + token_budget (kiss-orchestrator)
-    ├── CHECKPOINT.md                    ← snapshot pré-compact (hooks auto)
-    ├── MEMORY.md                        ← contexte partagé
-    ├── MEMORY_kiss-orchestrator.md      ┐
-    ├── MEMORY_kiss-executor.md          ├─ mémoire privée par agent
-    ├── MEMORY_kiss-verificator.md       │
-    ├── MEMORY_kiss-improver.md          ┘
-    ├── INSIGHTS.md                      ← proposals d'amélioration (kiss-improver)
-    ├── ANALYZED.md                      ← index sessions + token stats (kiss-improver)
-    ├── TOKEN_STATS.md                   ← ledger conso tokens (kiss-improver)
-    ├── REVIEWS.md                       ← rapports review kiss-executor (kiss-verificator)
-    └── SCRATCH.md                       ← notes volatiles
+└── .kiss-claw/                          ← dossier racine (configurable via KISS_CLAW_DIR)
+    ├── agents/                          ← mémoires agents (configurable via KISS_CLAW_AGENTS_DIR)
+    │   ├── MEMORY_kiss-orchestrator.md  ┐
+    │   ├── MEMORY_kiss-executor.md      ├─ mémoire privée par agent
+    │   ├── MEMORY_kiss-verificator.md   │
+    │   ├── MEMORY_kiss-improver.md      ┘
+    │   ├── INSIGHTS.md                  ← proposals d'amélioration (kiss-improver)
+    │   └── ANALYZED.md                  ← index sessions (kiss-improver)
+    ├── project/                         ← données projet (configurable via KISS_CLAW_PROJECT_DIR)
+    │   ├── MEMORY.md                    ← contexte partagé
+    │   ├── ISSUES.md                    ← suivi des issues projet
+    │   └── SESSIONS.json                ← registre des sessions
+    └── sessions/                        ← données session (configurable via KISS_CLAW_SESSIONS_DIR)
+        └── 20260413-153022/             ← session individuelle (YYYYMMDD-HHmmss)
+            ├── PLAN.md                  ← plan de session (kiss-orchestrator)
+            ├── STATE.md                 ← état courant + mode (kiss-orchestrator)
+            ├── REVIEWS.md               ← rapports review (kiss-verificator)
+            ├── SCRATCH.md               ← notes volatiles
+            └── CHECKPOINT.md            ← snapshot pré-compact (hooks auto)
 ```
+
+### Variables d'environnement
+
+| Variable | Défaut | Description |
+|----------|--------|-------------|
+| `KISS_CLAW_DIR` | `.kiss-claw` | Dossier racine |
+| `KISS_CLAW_AGENTS_DIR` | `$KISS_CLAW_DIR/agents` | Mémoires et insights agents |
+| `KISS_CLAW_PROJECT_DIR` | `$KISS_CLAW_DIR/project` | Données partagées du projet |
+| `KISS_CLAW_SESSIONS_DIR` | `$KISS_CLAW_DIR/sessions` | Dossiers de sessions |
+| `KISS_CLAW_SESSION` | _(auto-créé)_ | ID de session active (YYYYMMDD-HHmmss) |
 
 ---
 
@@ -111,15 +159,15 @@ ton-projet/
 Ces fichiers ne peuvent être écrits que par leur agent propriétaire.
 Toute tentative d'un autre agent est bloquée avant exécution :
 
-| Fichier | Propriétaire |
-|---------|-------------|
-| `.kiss-claw/PLAN.md` | kiss-orchestrator |
-| `.kiss-claw/STATE.md` | kiss-orchestrator |
-| `.kiss-claw/MEMORY.md` | kiss-improver (via apply) |
-| `.kiss-claw/ANALYZED.md` | kiss-improver |
-| `.kiss-claw/INSIGHTS.md` | kiss-improver |
-| `.kiss-claw/TOKEN_STATS.md` | kiss-improver |
-| `.kiss-claw/CHECKPOINT.md` | hook SessionEnd |
+| Fichier | Scope | Propriétaire |
+|---------|-------|-------------|
+| `sessions/<id>/PLAN.md` | session | kiss-orchestrator |
+| `sessions/<id>/STATE.md` | session | kiss-orchestrator |
+| `sessions/<id>/REVIEWS.md` | session | kiss-verificator |
+| `sessions/<id>/CHECKPOINT.md` | session | hook SessionEnd |
+| `project/MEMORY.md` | projet | kiss-improver (via apply) |
+| `agents/ANALYZED.md` | agent | kiss-improver |
+| `agents/INSIGHTS.md` | agent | kiss-improver |
 
 ---
 
@@ -130,33 +178,18 @@ Toute tentative d'un autre agent est bloquée avant exécution :
 | `mark done` | kiss-orchestrator | Valide l'étape courante |
 | `dry-run on/off` | kiss-orchestrator | Bascule le mode kiss-executor |
 | `/compact` | kiss-orchestrator | Écrit CHECKPOINT.md avant compact |
-| `/analyze` | kiss-improver | Analyse nouveaux transcripts + conso tokens |
-| `/tokens` | kiss-improver | Rapport conso tokens sans re-analyser |
+| `/kiss-store` | tous les agents | Opérations de persistance (read/write/list/backup) |
+| `/analyze` | kiss-improver | Analyse nouveaux transcripts |
 | `/insights` | kiss-improver | Review et apply des proposals |
 
 ---
 
-## Suivi de consommation tokens
+## Support multi-session
 
-Après chaque `/analyze`, `TOKEN_STATS.md` est mis à jour :
+Chaque session kiss-claw crée son propre dossier sous `.kiss-claw/sessions/` avec un
+identifiant horodaté (YYYYMMDD-HHmmss). L'état spécifique à la session (plan, progression,
+reviews) est isolé, tandis que les mémoires agents et les données projet persistent entre sessions.
 
-```
-=== TOKEN CONSUMPTION ===
-Sessions tracked : 12
-Total tokens     : 187 400  (input: 142 000 / output: 45 400)
-Avg / session    : 15 617
-Avg tpt          : 312  (tokens per turn)
-
-By agent:
-  kiss-executor     : avg 22 400 tok/session, avg 480 tpt  [7 sessions]
-  kiss-orchestrator : avg 8 100 tok/session,  avg 180 tpt  [3 sessions]
-  kiss-verificator  : avg 6 200 tok/session,  avg 140 tpt  [2 sessions]
-
-Budget violations: 1 over / 2 warn
-Most expensive: 2025-04-08 kiss-executor — 34 200 tokens (many corrections)
-=========================
-```
-
-`tokens_per_turn` est l'indicateur d'efficacité clé : une valeur qui monte sur plusieurs
-sessions kiss-executor signale soit du context bloat, soit beaucoup de corrections — ce qui
-peut lui-même générer une proposal d'amélioration dans INSIGHTS.md.
+- **Nouvelle session** : créée automatiquement à l'init, ou via `KISS_CLAW_SESSION` explicite.
+- **Lister les sessions** : `/kiss-store list sessions` affiche toutes les sessions disponibles.
+- **Reprendre une session** : `KISS_CLAW_SESSION=<id>` pour reprendre une session précédente.

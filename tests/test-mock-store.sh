@@ -11,6 +11,7 @@ TMPDIR_BASE=$(mktemp -d)
 MOCK_DIR="$TMPDIR_BASE/mock-bin"
 MOCK_DB="$TMPDIR_BASE/mock-db.txt"
 export KISS_CLAW_DIR="$TMPDIR_BASE/.kiss-claw"
+export KISS_CLAW_SESSION="mock-session-01"
 mkdir -p "$MOCK_DIR" "$KISS_CLAW_DIR"
 
 cleanup() { rm -rf "$TMPDIR_BASE"; }
@@ -59,17 +60,33 @@ RESOURCE="${2:-}"
 DB="${MOCK_STORE_DB:?MOCK_STORE_DB must be set}"
 
 # Known resources (validation only — no file-path mapping needed)
-is_known() {
+# Session-scoped resources require KISS_CLAW_SESSION
+is_session_resource() {
   case "$1" in
-    plan|state|scratch|memory|memory:*|reviews|insights|analyzed|token-stats|checkpoint) return 0 ;;
+    plan|state|scratch|reviews|checkpoint) return 0 ;;
     *) return 1 ;;
   esac
+}
+
+is_known() {
+  case "$1" in
+    plan|state|scratch|memory|memory:kiss-*|reviews|insights|analyzed|checkpoint|sessions) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+require_session() {
+  if is_session_resource "$1" && [[ -z "${KISS_CLAW_SESSION:-}" ]]; then
+    echo "error: KISS_CLAW_SESSION is required for resource '$1' (session-scoped)" >&2
+    exit 1
+  fi
 }
 
 case "$ACTION" in
   read)
     [[ -z "$RESOURCE" ]] && { echo "usage: store.sh read <resource>" >&2; exit 1; }
     is_known "$RESOURCE" || { echo "unknown resource: $RESOURCE" >&2; exit 1; }
+    require_session "$RESOURCE"
     [[ -f "$DB" ]] || exit 0
     # Extract all lines for this resource and reconstruct content
     while IFS=$'\t' read -r key value; do
@@ -80,6 +97,7 @@ case "$ACTION" in
   write)
     [[ -z "$RESOURCE" ]] && { echo "usage: store.sh write <resource> [content...]" >&2; exit 1; }
     is_known "$RESOURCE" || { echo "unknown resource: $RESOURCE" >&2; exit 1; }
+    require_session "$RESOURCE"
     shift 2
     CONTENT="$*"
     # Remove old entries for this resource
@@ -103,6 +121,7 @@ case "$ACTION" in
   append)
     [[ -z "$RESOURCE" ]] && { echo "usage: store.sh append <resource> [content...]" >&2; exit 1; }
     is_known "$RESOURCE" || { echo "unknown resource: $RESOURCE" >&2; exit 1; }
+    require_session "$RESOURCE"
     shift 2
     CONTENT="$*"
     if [[ -n "$CONTENT" ]]; then
@@ -120,6 +139,7 @@ case "$ACTION" in
   update)
     [[ -z "$RESOURCE" ]] && { echo "usage: store.sh update <resource> <field> <value...>" >&2; exit 1; }
     is_known "$RESOURCE" || { echo "unknown resource: $RESOURCE" >&2; exit 1; }
+    require_session "$RESOURCE"
     FIELD="${3:?usage: store.sh update <resource> <field> <value...>}"
     # Check resource exists in DB
     if [[ ! -f "$DB" ]] || ! grep -q "^${RESOURCE}	" "$DB" 2>/dev/null; then
@@ -146,6 +166,7 @@ case "$ACTION" in
   exists)
     [[ -z "$RESOURCE" ]] && { echo "usage: store.sh exists <resource>" >&2; exit 1; }
     is_known "$RESOURCE" || { echo "unknown resource: $RESOURCE" >&2; exit 1; }
+    require_session "$RESOURCE"
     if [[ -f "$DB" ]] && grep -q "^${RESOURCE}	" "$DB" 2>/dev/null; then
       echo "true"
     else
@@ -248,14 +269,36 @@ set -e
 assert_eq "mock rejects unknown resource" "1" "$code"
 
 # ---------------------------------------------------------------------------
-echo "--- interface parity: memory:* sub-resources ---"
+echo "--- interface parity: memory:kiss-* sub-resources ---"
 
-bash "$STORE" write "memory:orchestrator" "agent notes" >/dev/null
-out=$(bash "$STORE" read "memory:orchestrator")
-assert_eq "mock supports memory:* resources" "agent notes" "$out"
+bash "$STORE" write "memory:kiss-orchestrator" "agent notes" >/dev/null
+out=$(bash "$STORE" read "memory:kiss-orchestrator")
+assert_eq "mock supports memory:kiss-* resources" "agent notes" "$out"
 
 out=$(bash "$STORE" list)
-assert_contains "mock list includes memory:orchestrator" "memory:orchestrator" "$out"
+assert_contains "mock list includes memory:kiss-orchestrator" "memory:kiss-orchestrator" "$out"
+
+# ---------------------------------------------------------------------------
+echo "--- session requirement ---"
+
+# Session-scoped resources must fail without KISS_CLAW_SESSION
+for res in plan state reviews scratch checkpoint; do
+  set +e
+  err=$(env -u KISS_CLAW_SESSION bash "$STORE" read "$res" 2>&1)
+  code=$?
+  set -e
+  assert_eq "mock $res without session exits 1" "1" "$code"
+  assert_contains "mock $res error mentions KISS_CLAW_SESSION" "KISS_CLAW_SESSION" "$err"
+done
+
+# Non-session resources should work without KISS_CLAW_SESSION
+for res in memory insights analyzed; do
+  set +e
+  env -u KISS_CLAW_SESSION bash "$STORE" exists "$res" >/dev/null 2>&1
+  code=$?
+  set -e
+  assert_eq "mock $res without session succeeds" "0" "$code"
+done
 
 # ---------------------------------------------------------------------------
 echo ""

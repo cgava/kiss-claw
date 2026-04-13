@@ -12,6 +12,10 @@ INIT="$REPO_DIR/scripts/init.sh"
 
 TMPDIR_BASE=$(mktemp -d)
 export KISS_CLAW_DIR="$TMPDIR_BASE/.kiss-claw"
+export KISS_CLAW_AGENTS_DIR="$KISS_CLAW_DIR/agents"
+export KISS_CLAW_PROJECT_DIR="$KISS_CLAW_DIR/project"
+export KISS_CLAW_SESSIONS_DIR="$KISS_CLAW_DIR/sessions"
+export KISS_CLAW_SESSION="e2e-test-session"
 
 PASS=0
 FAIL=0
@@ -68,15 +72,24 @@ echo "=== Phase 1: Init ==="
 # Run init.sh with KISS_CLAW_DIR pointing to temp
 (cd "$TMPDIR_BASE" && bash "$INIT")
 
-# Verify memory files were created via store.sh exists
+# Verify 3 sub-directories were created
+assert_eq "init creates agents/ subdir" "true" "$(test -d "$KISS_CLAW_AGENTS_DIR" && echo true || echo false)"
+assert_eq "init creates project/ subdir" "true" "$(test -d "$KISS_CLAW_PROJECT_DIR" && echo true || echo false)"
+assert_eq "init creates sessions/ subdir" "true" "$(test -d "$KISS_CLAW_SESSIONS_DIR" && echo true || echo false)"
+
+# Verify project memory is in project/
 out=$(bash "$STORE" exists memory)
 assert_eq "init creates MEMORY.md" "true" "$out"
+assert_eq "MEMORY.md is in project dir" "true" "$(test -f "$KISS_CLAW_PROJECT_DIR/MEMORY.md" && echo true || echo false)"
 
+# Verify agent memory files are in agents/
 out=$(bash "$STORE" exists "memory:kiss-orchestrator")
 assert_eq "init creates MEMORY_kiss-orchestrator.md" "true" "$out"
+assert_eq "MEMORY_kiss-orchestrator.md is in agents dir" "true" "$(test -f "$KISS_CLAW_AGENTS_DIR/MEMORY_kiss-orchestrator.md" && echo true || echo false)"
 
 out=$(bash "$STORE" exists "memory:kiss-executor")
 assert_eq "init creates MEMORY_kiss-executor.md" "true" "$out"
+assert_eq "MEMORY_kiss-executor.md is in agents dir" "true" "$(test -f "$KISS_CLAW_AGENTS_DIR/MEMORY_kiss-executor.md" && echo true || echo false)"
 
 out=$(bash "$STORE" exists "memory:kiss-verificator")
 assert_eq "init creates MEMORY_kiss-verificator.md" "true" "$out"
@@ -88,6 +101,9 @@ assert_eq "init creates MEMORY_kiss-improver.md" "true" "$out"
 echo ""
 echo "=== Phase 2: Plan ==="
 # ===========================================================================
+
+# Create the session directory (init doesn't create sessions)
+mkdir -p "$KISS_CLAW_SESSIONS_DIR/$KISS_CLAW_SESSION"
 
 # Write a test plan via store.sh
 out=$(bash "$STORE" write plan "# Test Plan
@@ -116,6 +132,10 @@ assert_contains "plan contains Phase 1" "Phase 1" "$plan_content"
 
 state_content=$(bash "$STORE" read state)
 assert_contains "state has correct project" "e2e-test" "$state_content"
+
+# Verify files are in session directory
+assert_eq "PLAN.md is in session dir" "true" "$(test -f "$KISS_CLAW_SESSIONS_DIR/$KISS_CLAW_SESSION/PLAN.md" && echo true || echo false)"
+assert_eq "STATE.md is in session dir" "true" "$(test -f "$KISS_CLAW_SESSIONS_DIR/$KISS_CLAW_SESSION/STATE.md" && echo true || echo false)"
 
 # ===========================================================================
 echo ""
@@ -152,31 +172,26 @@ assert_contains "review contains step 1.1" "Step 1.1" "$review_content"
 assert_contains "review contains approved" "approved" "$review_content"
 assert_contains "review contains kiss-verificator" "kiss-verificator" "$review_content"
 
+# Verify reviews is in session dir
+assert_eq "REVIEWS.md is in session dir" "true" "$(test -f "$KISS_CLAW_SESSIONS_DIR/$KISS_CLAW_SESSION/REVIEWS.md" && echo true || echo false)"
+
 # ===========================================================================
 echo ""
 echo "=== Phase 5: Improve ==="
 # ===========================================================================
 
-# Append an insight
+# Append an insight (agent-scoped, no session needed)
 out=$(bash "$STORE" append insights "## Insight #1
 - Pattern: Tests should validate full lifecycle
 - Recommendation: Always test init -> plan -> execute -> review -> improve")
 assert_eq "append insight returns ok" "ok" "$out"
 
-# Write token stats
-out=$(bash "$STORE" write token-stats "# Token Stats
-| Agent | Input | Output | Total |
-|-------|-------|--------|-------|
-| kiss-executor | 2000 | 500 | 2500 |")
-assert_eq "write token-stats returns ok" "ok" "$out"
-
 # Verify insights
 insight_content=$(bash "$STORE" read insights)
 assert_contains "insights contain pattern" "Tests should validate full lifecycle" "$insight_content"
 
-# Verify token stats
-stats_content=$(bash "$STORE" read token-stats)
-assert_contains "token-stats contain executor row" "kiss-executor" "$stats_content"
+# Verify insights is in agents dir
+assert_eq "INSIGHTS.md is in agents dir" "true" "$(test -f "$KISS_CLAW_AGENTS_DIR/INSIGHTS.md" && echo true || echo false)"
 
 # ===========================================================================
 echo ""
@@ -198,32 +213,53 @@ assert_contains "checkpoint contains CHECKPOINT header" "CHECKPOINT" "$ckpt_cont
 assert_contains "checkpoint contains state snapshot" "State snapshot" "$ckpt_content"
 assert_contains "checkpoint contains resume instruction" "Resume instruction" "$ckpt_content"
 
+# Verify checkpoint is in session dir
+assert_eq "CHECKPOINT.md is in session dir" "true" "$(test -f "$KISS_CLAW_SESSIONS_DIR/$KISS_CLAW_SESSION/CHECKPOINT.md" && echo true || echo false)"
+
 # ===========================================================================
 echo ""
 echo "=== Phase 7: Guard protection ==="
 # ===========================================================================
 
-# Test that guard.sh blocks direct writes to protected files
+SESSION_DIR="$KISS_CLAW_SESSIONS_DIR/$KISS_CLAW_SESSION"
+
+# Test that guard.sh blocks direct writes to protected files in sessions/
 set +e
-CLAUDE_TOOL_NAME=Write CLAUDE_TOOL_INPUT_PATH=".kiss-claw/PLAN.md" \
+CLAUDE_TOOL_NAME=Write CLAUDE_TOOL_INPUT_PATH="$SESSION_DIR/PLAN.md" \
   bash "$GUARD" >/dev/null 2>&1
 guard_block_code=$?
 set -e
-assert_eq "guard blocks direct Write to PLAN.md" "1" "$guard_block_code"
+assert_eq "guard blocks direct Write to sessions/PLAN.md" "1" "$guard_block_code"
 
 set +e
-CLAUDE_TOOL_NAME=Edit CLAUDE_TOOL_INPUT_PATH=".kiss-claw/STATE.md" \
+CLAUDE_TOOL_NAME=Edit CLAUDE_TOOL_INPUT_PATH="$SESSION_DIR/STATE.md" \
   bash "$GUARD" >/dev/null 2>&1
 guard_block_edit=$?
 set -e
-assert_eq "guard blocks Edit to STATE.md" "1" "$guard_block_edit"
+assert_eq "guard blocks Edit to sessions/STATE.md" "1" "$guard_block_edit"
 
+# Test that guard.sh blocks writes to protected files in project/
 set +e
-CLAUDE_TOOL_NAME=Write CLAUDE_TOOL_INPUT_PATH=".kiss-claw/MEMORY.md" \
+CLAUDE_TOOL_NAME=Write CLAUDE_TOOL_INPUT_PATH="$KISS_CLAW_PROJECT_DIR/MEMORY.md" \
   bash "$GUARD" >/dev/null 2>&1
 guard_block_mem=$?
 set -e
-assert_eq "guard blocks Write to MEMORY.md" "1" "$guard_block_mem"
+assert_eq "guard blocks Write to project/MEMORY.md" "1" "$guard_block_mem"
+
+# Test that guard.sh blocks writes to protected files in agents/
+set +e
+CLAUDE_TOOL_NAME=Write CLAUDE_TOOL_INPUT_PATH="$KISS_CLAW_AGENTS_DIR/INSIGHTS.md" \
+  bash "$GUARD" >/dev/null 2>&1
+guard_block_insights=$?
+set -e
+assert_eq "guard blocks Write to agents/INSIGHTS.md" "1" "$guard_block_insights"
+
+set +e
+CLAUDE_TOOL_NAME=Write CLAUDE_TOOL_INPUT_PATH="$KISS_CLAW_AGENTS_DIR/MEMORY_kiss-executor.md" \
+  bash "$GUARD" >/dev/null 2>&1
+guard_block_agent_mem=$?
+set -e
+assert_eq "guard blocks Write to agents/MEMORY_kiss-executor.md" "1" "$guard_block_agent_mem"
 
 # Test that guard.sh allows store.sh via Bash
 set +e
