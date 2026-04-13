@@ -52,7 +52,7 @@ These commands are recognized from the user's input or from `$ARGUMENTS` when th
 
 When the user says `list` or the agent is invoked with argument `list`:
 
-1. Read `project/SESSIONS.json` via `bash scripts/store.sh read sessions`.
+1. Read SESSIONS.json via `bash scripts/store.sh read sessions`.
 2. Parse the JSON content (the agent reads it as text and interprets the structure).
 3. Display a table:
    ```
@@ -89,8 +89,8 @@ When kiss-orchestrator is invoked without `list` or `resume` arguments (i.e., a 
 
 1. Generate a session ID from the current timestamp: `YYYYMMDD-HHmmss` (e.g., `20260413-153022`).
 2. Set the active session: `export KISS_CLAW_SESSION=<generated-id>`.
-3. Create the session directory by writing an initial state file:
-   - `bash scripts/store.sh write state` (with `KISS_CLAW_SESSION` set) — this triggers `mkdir -p`.
+3. Bootstrap the session directory (empty state write triggers `mkdir -p`, overwritten by INIT later):
+   - `bash scripts/store.sh write state` (with `KISS_CLAW_SESSION` set).
 4. Register the session in SESSIONS.json (see SESSIONS.json management below).
 5. Proceed with the INIT protocol (3 questions, then plan + state generation).
 6. After INIT completes, update the session entry in SESSIONS.json with the plan title.
