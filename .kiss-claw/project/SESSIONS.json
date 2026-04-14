@@ -33,12 +33,18 @@
       "title": "Documentation Diátaxis kiss-claw",
       "closed": "2026-04-14T15:30:00",
       "summary": {
-        "need": "Dette documentaire — kiss-claw a évolué plus vite que sa documentation. Les process (checkpoints, sync sessions, store.sh) ne sont pas évidents pour les utilisateurs ni les agents.",
-        "outcome": "Documentation Diátaxis complète en français dans docs/help/fr/ : 25 fichiers couvrant tutorials (1 guide pas à pas), how-to (8 guides pratiques), reference (6 fiches techniques), explanation (5 articles de fond). Skill /kiss-help créé (commands/kiss-help.md + scripts/help.sh) pour navigation et recherche. Hook agent-suggest.sh enrichi pour mentionner la doc aux nouveaux utilisateurs. 3 cycles review verificator avec corrections appliquées.",
+        "need": "Dette documentaire — kiss-claw a évolué plus vite que sa documentation.",
+        "outcome": "Documentation Diátaxis complète en français dans docs/help/fr/. Skill /kiss-help créé. Hook agent-suggest.sh enrichi.",
         "files_changed": ["docs/help/fr/ (25 fichiers)", "commands/kiss-help.md", "scripts/help.sh", "hooks/agent-suggest.sh"],
-        "decisions": ["Framework Diátaxis (4 quadrants stricts, pas de mélange)", "Structure i18n-ready : docs/help/fr/ pour docs/help/en/ futur", "Script help.sh comme backend (grep -F pour recherche littérale)", "Français sans accents (cohérent avec le corpus existant)"],
-        "next": ["Traduction anglaise dans docs/help/en/", "Ajout de tutorials supplémentaires (ex: boucle amélioration, multi-session)", "Nettoyage accents français dans toute la doc"]
+        "decisions": ["Framework Diátaxis", "Structure i18n-ready", "Français sans accents"],
+        "next": ["Traduction anglaise", "Tutorials supplémentaires"]
       }
+    },
+    {
+      "id": "20260414-170500",
+      "created": "2026-04-14T17:05:00",
+      "status": "in_progress",
+      "title": ""
     }
   ]
 }

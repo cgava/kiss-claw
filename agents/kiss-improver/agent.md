@@ -267,18 +267,24 @@ Run /insights to review proposals
 
 ### Step 7.5 — CHECKPOINT logging
 
-After the summary, if `KISS_CLAW_SESSION` is set, log the analysis to the CHECKPOINT.
-The `task` and `result` fields MUST be quasi-verbatim from the summary output:
+After the summary, if `KISS_CLAW_SESSION` is set, detect the Claude session ID and log
+the analysis to the CHECKPOINT. The `task` and `result` fields MUST be quasi-verbatim
+from the summary output:
 ```bash
+# Detect own Claude session ID via parent's subagents directory
+CLAUDE_PROJECT_DIR="$HOME/.claude/projects/$(echo "$PWD" | sed 's|/|-|g')"
+MY_CLAUDE_SESSION=$(ls -t "$CLAUDE_PROJECT_DIR/$PARENT_CLAUDE_SESSION/subagents"/*.meta.json 2>/dev/null | head -1 | xargs basename 2>/dev/null | sed 's/.meta.json//')
+# Fallback if detection fails
+MY_CLAUDE_SESSION="${MY_CLAUDE_SESSION:-improver-$KISS_CLAW_SESSION}"
+
 echo 'agent: kiss-improver
 task: "Analyse de N sessions"
 result: "N facts, N proposals générés. Top proposal: <one line>. Token stats mis à jour."' | \
-KISS_CLAW_SESSION=$KISS_CLAW_SESSION bash scripts/store.sh checkpoint upsert "improver-$KISS_CLAW_SESSION" \
-  --parent "<parent_session si fourni par orchestrator>"
+KISS_CLAW_SESSION=$KISS_CLAW_SESSION bash scripts/store.sh checkpoint upsert "$MY_CLAUDE_SESSION" \
+  --parent "$PARENT_CLAUDE_SESSION"
 ```
-Note: `claude_session_placeholder` uses `"improver-$KISS_CLAW_SESSION"` until the Phase 3
-sync mechanism provides automatic session ID resolution.
-If no `--parent` was provided by kiss-orchestrator, omit the `--parent` flag.
+`PARENT_CLAUDE_SESSION` is provided by kiss-orchestrator in the delegation message.
+If no `PARENT_CLAUDE_SESSION` was provided, omit the `--parent` flag.
 
 ---
 

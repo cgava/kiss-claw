@@ -213,12 +213,18 @@ After the INIT protocol completes (plan and state are written), the orchestrator
    `why: "Non élicité — l'utilisateur n'a pas souhaité détailler"`
    avec `Catégorie : non_élicité`.
 
-2. Log its own INIT entry in the CHECKPOINT:
+2. Detect its own Claude session ID and log the INIT entry in the CHECKPOINT:
    ```bash
+   # Detect own Claude session ID
+   CLAUDE_PROJECT_DIR="$HOME/.claude/projects/$(echo "$PWD" | sed 's|/|-|g')"
+   MY_CLAUDE_SESSION=$(ls -t "$CLAUDE_PROJECT_DIR"/*.jsonl 2>/dev/null | head -1 | xargs basename 2>/dev/null | sed 's/.jsonl//')
+   # Fallback if detection fails
+   MY_CLAUDE_SESSION="${MY_CLAUDE_SESSION:-orchestrator-$KISS_CLAW_SESSION}"
+
    echo 'agent: kiss-orchestrator
    task: "INIT — Plan généré, CHECKPOINT initialisé"
    result: "<résumé détaillé de ce qui a été planifié>"' | \
-   KISS_CLAW_SESSION=$KISS_CLAW_SESSION bash scripts/store.sh checkpoint upsert "orchestrator-$KISS_CLAW_SESSION"
+   KISS_CLAW_SESSION=$KISS_CLAW_SESSION bash scripts/store.sh checkpoint upsert "$MY_CLAUDE_SESSION"
    ```
 
 ### CHECKPOINT tracking continu
@@ -227,28 +233,51 @@ At each delegation to another agent, the orchestrator MUST:
 
 1. Log the delegation entry in the CHECKPOINT **before** delegating:
    ```bash
+   # Detect own Claude session ID (if not already done)
+   CLAUDE_PROJECT_DIR="$HOME/.claude/projects/$(echo "$PWD" | sed 's|/|-|g')"
+   MY_CLAUDE_SESSION=$(ls -t "$CLAUDE_PROJECT_DIR"/*.jsonl 2>/dev/null | head -1 | xargs basename 2>/dev/null | sed 's/.jsonl//')
+   MY_CLAUDE_SESSION="${MY_CLAUDE_SESSION:-orchestrator-$KISS_CLAW_SESSION}"
+
    echo 'agent: kiss-orchestrator
    task: "Délégation <agent> — <description de la tâche>"
    result: "En cours — délégué à <agent>"' | \
-   KISS_CLAW_SESSION=$KISS_CLAW_SESSION bash scripts/store.sh checkpoint upsert "orchestrator-$KISS_CLAW_SESSION"
+   KISS_CLAW_SESSION=$KISS_CLAW_SESSION bash scripts/store.sh checkpoint upsert "$MY_CLAUDE_SESSION"
    ```
 
-2. Include the CHECKPOINT instruction in the delegation message to the target agent:
+2. Include `PARENT_CLAUDE_SESSION` and the CHECKPOINT instruction in the delegation message to the target agent:
    ```
+   PARENT_CLAUDE_SESSION=$MY_CLAUDE_SESSION
+
    CHECKPOINT: En fin de tâche, appelle :
    echo 'agent: <ton_nom>
    task: "<description détaillée quasi-verbatim>"
    result: "<résultat détaillé quasi-verbatim>"' | \
-   KISS_CLAW_SESSION=<session_id> bash scripts/store.sh checkpoint upsert "<agent>-<session_id>" --parent "orchestrator-<session_id>"
+   KISS_CLAW_SESSION=<session_id> bash scripts/store.sh checkpoint upsert "$MY_CLAUDE_SESSION" --parent "$PARENT_CLAUDE_SESSION"
    ```
+   The subagent detects its own `MY_CLAUDE_SESSION` at runtime (see subagent detection mechanism in each agent.md).
 
-### Session ID Claude
+### Session ID Claude — runtime detection
 
-The `claude_session_id` used for checkpoint entries cannot be determined automatically by agents
-in the current Claude Code context. Until the sync mechanism is implemented (Phase 3), agents
-use a descriptive placeholder: `"<agent_name>-$KISS_CLAW_SESSION"` (e.g., `"orchestrator-20260414-082706"`).
+**Orchestrator (parent session)** — detects its own Claude session by finding the most recent
+`.jsonl` file in the Claude project directory:
+```bash
+CLAUDE_PROJECT_DIR="$HOME/.claude/projects/$(echo "$PWD" | sed 's|/|-|g')"
+MY_CLAUDE_SESSION=$(ls -t "$CLAUDE_PROJECT_DIR"/*.jsonl 2>/dev/null | head -1 | xargs basename 2>/dev/null | sed 's/.jsonl//')
+# Fallback if detection fails
+MY_CLAUDE_SESSION="${MY_CLAUDE_SESSION:-orchestrator-$KISS_CLAW_SESSION}"
+```
 
-Phase 3 will introduce automatic session ID resolution.
+The orchestrator passes `PARENT_CLAUDE_SESSION=$MY_CLAUDE_SESSION` in every delegation so that
+subagents can detect their own session within the parent's subagents directory.
+
+**Subagents (executor, verificator, improver)** — detect their own Claude session by finding
+the most recent `.meta.json` file under the parent's subagents directory:
+```bash
+CLAUDE_PROJECT_DIR="$HOME/.claude/projects/$(echo "$PWD" | sed 's|/|-|g')"
+MY_CLAUDE_SESSION=$(ls -t "$CLAUDE_PROJECT_DIR/$PARENT_CLAUDE_SESSION/subagents"/*.meta.json 2>/dev/null | head -1 | xargs basename 2>/dev/null | sed 's/.meta.json//')
+# Fallback if detection fails
+MY_CLAUDE_SESSION="${MY_CLAUDE_SESSION:-<agent_name>-$KISS_CLAW_SESSION}"
+```
 
 ## INIT (first run, `/kiss-store exists plan` returns false)
 
