@@ -1,0 +1,40 @@
+session: "20260414-231500"
+created: "2026-04-14T19:44:55"
+
+need:
+why: |
+  Les CHECKPOINT.yaml actuels sont trop compactes (task monoligne + result resume)
+  pour permettre des retex retrospectifs ou du transfert de contexte inter-agents.
+  On perd toute la richesse des echanges (tableaux de synthese, decisions argumentees,
+  messages verbatim). Objectif : memoire projet auto-suffisante sans dependance aux
+  sessions Claude brutes.
+  Categorie : dette_technique
+raw: |
+  Les fichiers CHECKPOINT.yaml de chaque session permettent de synthetiser les
+  differentes actions des agents pour permettre aux agents de se transferer un
+  contexte de plan. Ils sont egalement la memoire du projet. Quand je vois le
+  travail fait par les agents, encore disponible dans les sessions Claude, je
+  pense que ce fichier checkpoint est bien trop resume. J aimerais avoir au moins
+  le contenu verbatim des messages et tableaux de syntheses produits par les agents.
+  C est trop compacte pour pouvoir en tirer de la valeur quand on va analyser
+  retroactivement l historique du projet pour faire des retex.
+elicited: |
+  Memoire projet auto-suffisante. Retex retrospectifs. Transfert contexte inter-agents.
+  Sans dependance aux sessions Claude brutes (ephemeres).
+constraints: |
+  Python stdlib + pyyaml uniquement. Pas de fallback si pyyaml absent.
+  Champs existants non-vides non ecrases sauf si contenu extrait significativement plus riche.
+
+log:
+  - agent: "kiss-orchestrator"
+    claude_session: "orchestrator-20260414-231500"
+    timestamp: "2026-04-14T19:54:18Z"
+    task: "Delegation kiss-executor — Phase 1 TDD red (fixtures + tests checkpoint-enrich)"
+    result: "En cours — delegue a kiss-executor"
+    children:
+      - agent: "kiss-executor"
+        claude_session: "executor-20260414-231500"
+        timestamp: "2026-04-14T19:59:53Z"
+        task: "Phase 1 TDD red — fixtures et tests unitaires checkpoint-enrich"
+        result: "Created 3 fixtures (sample_checkpoint.yaml, sample_transcript.jsonl, expected_enriched.yaml) in tests/fixtures/checkpoint-enrich/ and 1 test file (test_checkpoint_enrich.py) in tests/scenarios/03-checkpoint-enrich/ with 8 unit tests. All 8/8 tests fail as expected (RED phase): 4 ModuleNotFoundError, 4 AssertionError. Dry-run mode passes."
+        children: []

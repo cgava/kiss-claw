@@ -1,0 +1,78 @@
+session: "20260413-223433"
+created: "2026-04-13T22:34:33"
+claude_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
+
+need:
+  why: |
+    Test session for checkpoint enrichment.
+  raw: |
+    Original request for test session.
+
+log:
+  - phase: "Phase 1"
+    steps:
+      - agent: "kiss-executor"
+        claude_session: "abc123-short"
+        parent_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
+        timestamp: "2026-04-13T22:03:26Z"
+        task: |
+          I will start by reading the current store.sh implementation to understand the existing resolve() function and plan the refactoring. The goal is to restructure .kiss-claw/ into three subdirectories: agents/, project/, and sessions/. Each directory will hold specific resource types, and environment variables will allow customizing the paths.
+        rationale: |
+          J'ai choisi de restructurer resolve() en utilisant un case statement avec trois branches principales plutot que de maintenir une liste de if/elif. Cette approche est plus lisible et plus facile a maintenir. Les alternatives considerees etaient : (1) un tableau associatif bash, mais cela aurait limite la compatibilite avec les anciens shells, et (2) un fichier de configuration externe, mais cela ajouterait une dependance fichier inutile.
+        result: |
+          === TASK REPORT ===
+          Agent  : kiss-executor
+          Task   : Refactorer store.sh resolve() pour 3 categories avec variables d'env
+          Done   :
+            - scripts/store.sh modified: resolve() refactored with 3-tier mapping
+            - scripts/store.sh modified: reverse_map() updated for new structure
+            - scripts/store.sh modified: require_session() added for clear error on missing session
+            - scripts/store.sh modified: token-stats resource removed
+          Caveats: reverse_map() edge case with unset KISS_CLAW_SESSION
+          ==================
+        artifacts: |
+          Here is the summary of resource mapping after refactoring:
+
+          | Resource | Directory | File |
+          |---|---|---|
+          | memory | project/ | MEMORY.md |
+          | memory:kiss-orchestrator | agents/ | MEMORY_kiss-orchestrator.md |
+          | memory:kiss-executor | agents/ | MEMORY_kiss-executor.md |
+          | plan | sessions/$ID/ | PLAN.md |
+          | state | sessions/$ID/ | STATE.md |
+          | reviews | sessions/$ID/ | REVIEWS.md |
+          | checkpoint | sessions/$ID/ | CHECKPOINT.yaml |
+
+          All paths are resolved relative to KISS_CLAW_DIR, with optional overrides via environment variables.
+
+          === TASK REPORT ===
+          Agent  : kiss-executor
+          Task   : Refactorer store.sh resolve() pour 3 categories avec variables d'env
+          Done   :
+            - scripts/store.sh modified: resolve() refactored with 3-tier mapping
+            - scripts/store.sh modified: reverse_map() updated for new structure
+            - scripts/store.sh modified: require_session() added for clear error on missing session
+            - scripts/store.sh modified: token-stats resource removed
+          Caveats: reverse_map() edge case with unset KISS_CLAW_SESSION
+          ==================
+        decisions: |
+          J'ai choisi de restructurer resolve() en utilisant un case statement avec trois branches principales plutot que de maintenir une liste de if/elif. Cette approche est plus lisible et plus facile a maintenir. Les alternatives considerees etaient : (1) un tableau associatif bash, mais cela aurait limite la compatibilite avec les anciens shells, et (2) un fichier de configuration externe, mais cela ajouterait une dependance fichier inutile.
+        issues: |
+          One caveat to note: the reverse_map() function currently does not handle the sessions/ subdirectory correctly when KISS_CLAW_SESSION is not set. This is a limitation that should be addressed in a follow-up step. The issue manifests as an empty path resolution for session-scoped resources, which causes store.sh to silently fail rather than producing a clear error message.
+      - agent: "kiss-verificator"
+        claude_session: "def456-long"
+        parent_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
+        timestamp: "2026-04-13T22:10:00Z"
+        task: |
+          This is a long task description that exceeds two hundred characters.
+          It contains multiple lines of detailed explanation about what needs to be done.
+          The verificator agent reviewed the executor output and provided comprehensive
+          feedback covering all aspects of the implementation including code quality,
+          test coverage, and adherence to project conventions. This should not be overwritten.
+        result: |
+          This is a long result description that exceeds two hundred characters.
+          The review was thorough and covered all acceptance criteria. Multiple issues
+          were identified and documented. The verificator provided actionable feedback
+          for each issue found. All recommendations were prioritized by severity.
+          This existing content should be preserved during enrichment because it is
+          already substantial enough to be considered complete.
