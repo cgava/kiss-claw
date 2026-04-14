@@ -192,5 +192,6 @@
       "status": "in_progress",
       "title": "Implementation /kiss-checkpoint-enrich"
     }
-  ]
+  ],
+  "claude_sessions_path": "/home/omc/.claude/projects/-home-omc-workspace-kiss-claw"
 }

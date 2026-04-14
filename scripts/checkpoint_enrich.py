@@ -28,7 +28,10 @@ class BlockStyleDumper(yaml.Dumper):
 
 def _str_representer(dumper, data):
     if '\n' in data:
-        return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
+        # Clean up lines: strip trailing whitespace to avoid pyyaml quoting issues
+        lines = data.split('\n')
+        cleaned = '\n'.join(line.rstrip() for line in lines)
+        return dumper.represent_scalar('tag:yaml.org,2002:str', cleaned, style='|')
     return dumper.represent_scalar('tag:yaml.org,2002:str', data)
 
 
@@ -180,6 +183,22 @@ def enrich_step(step, blocks):
 # CLI helpers
 # ---------------------------------------------------------------------------
 
+def _iter_steps(log):
+    """Recursively yield (parent_list, index, step) for all steps including children."""
+    for log_entry in log:
+        steps = log_entry.get("steps", [])
+        yield from _iter_steps_recursive(steps)
+
+
+def _iter_steps_recursive(steps):
+    """Yield (parent_list, index, step) recursively through children."""
+    for i, step in enumerate(steps):
+        yield steps, i, step
+        children = step.get("children", [])
+        if children:
+            yield from _iter_steps_recursive(children)
+
+
 def _find_transcript(step, home_dir, cwd, transcripts_base=None):
     """Locate the .jsonl transcript file for a given step.
 
@@ -235,44 +254,56 @@ def main():
     with open(checkpoint_path, "r", encoding="utf-8") as f:
         checkpoint = yaml.safe_load(f)
 
+    # Resolve transcripts directory
+    transcripts_dir = args.transcripts_dir
+    if not transcripts_dir:
+        # Try to read from SESSIONS.json
+        sessions_path = os.path.join(kiss_claw_dir, "project", "SESSIONS.json")
+        if os.path.isfile(sessions_path):
+            with open(sessions_path, "r", encoding="utf-8") as f:
+                sessions_data = json.load(f)
+            transcripts_dir = sessions_data.get("claude_sessions_path")
+        # Final fallback: derive from cwd (may be wrong)
+        if not transcripts_dir:
+            slug = cwd.replace("/", "-").lstrip("-")
+            transcripts_dir = os.path.join(home_dir, ".claude", "projects", slug)
+
     modified = False
 
-    for log_entry in checkpoint.get("log", []):
-        steps = log_entry.get("steps", [])
-        for i, step in enumerate(steps):
-            cs = step.get("claude_session", "")
+    for parent_list, i, step in _iter_steps(checkpoint.get("log", [])):
+        cs = step.get("claude_session", "")
 
-            # If --step specified, skip non-matching steps
-            if args.step_id and cs != args.step_id:
-                continue
+        # If --step specified, skip non-matching steps
+        if args.step_id and cs != args.step_id:
+            continue
 
-            # Find transcript
-            transcript_path = _find_transcript(step, home_dir, cwd,
-                                               transcripts_base=args.transcripts_dir)
-            if transcript_path is None:
-                print(
-                    f"Warning: transcript not found for step {cs}",
-                    file=sys.stderr,
-                )
-                continue
+        # Find transcript
+        transcript_path = _find_transcript(step, home_dir, cwd,
+                                           transcripts_base=transcripts_dir)
+        if transcript_path is None:
+            print(
+                f"Warning: transcript not found for step {cs}",
+                file=sys.stderr,
+            )
+            continue
 
-            # Parse and enrich
-            blocks = parse_jsonl(transcript_path)
-            enriched = enrich_step(step, blocks)
+        # Parse and enrich
+        blocks = parse_jsonl(transcript_path)
+        enriched = enrich_step(step, blocks)
 
-            if args.dry_run:
-                print(f"[dry-run] Step {cs}:")
-                if enriched.get("task") != step.get("task"):
-                    print(f"  task: would update ({len(step.get('task', ''))} -> {len(enriched.get('task', ''))} chars)")
-                if enriched.get("result") != step.get("result"):
-                    print(f"  result: would update ({len(step.get('result', ''))} -> {len(enriched.get('result', ''))} chars)")
-                for field in ("artifacts", "decisions", "issues", "rationale"):
-                    value = enriched.get(field, "")
-                    if value:
-                        print(f"  {field}: {len(value)} chars")
-            else:
-                steps[i] = enriched
-                modified = True
+        if args.dry_run:
+            print(f"[dry-run] Step {cs}:")
+            if enriched.get("task") != step.get("task"):
+                print(f"  task: would update ({len(step.get('task', ''))} -> {len(enriched.get('task', ''))} chars)")
+            if enriched.get("result") != step.get("result"):
+                print(f"  result: would update ({len(step.get('result', ''))} -> {len(enriched.get('result', ''))} chars)")
+            for field in ("artifacts", "decisions", "issues", "rationale"):
+                value = enriched.get(field, "")
+                if value:
+                    print(f"  {field}: {len(value)} chars")
+        else:
+            parent_list[i] = enriched
+            modified = True
 
     if modified and not args.dry_run:
         with open(checkpoint_path, "w", encoding="utf-8") as f:

@@ -317,6 +317,23 @@ do_init() {
     echo "  created SESSIONS.json"
   fi
 
+  # --- 2.4b Store claude_sessions_path in SESSIONS.json ---
+  # Compute the Claude Code sessions directory path (slug keeps leading dash)
+  local claude_slug
+  claude_slug="$(pwd | sed 's|/|-|g')"
+  local claude_sessions_path="$HOME/.claude/projects/$claude_slug"
+  local current_sessions
+  current_sessions="$("$STORE" read sessions)"
+  local updated_sessions
+  updated_sessions="$(echo "$current_sessions" | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+data['claude_sessions_path'] = '$claude_sessions_path'
+print(json.dumps(data, indent=2, ensure_ascii=False))
+")"
+  echo "$updated_sessions" | "$STORE" write sessions > /dev/null
+  echo "  stored claude_sessions_path in SESSIONS.json"
+
   # --- 2.5 Update .gitignore ---
   echo ""
   if [ -f .gitignore ]; then
