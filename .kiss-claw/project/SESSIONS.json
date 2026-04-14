@@ -11,6 +11,12 @@
       "created": "2026-04-13T22:34:33",
       "status": "in_progress",
       "title": "Refonte persistence multi-session"
+    },
+    {
+      "id": "20260414-082706",
+      "created": "2026-04-14T08:27:06",
+      "status": "in_progress",
+      "title": "CHECKPOINT.yaml + Journal évolutions projet"
     }
   ]
 }
