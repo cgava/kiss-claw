@@ -23,11 +23,13 @@ DEFAULT_PROJECT_DIR="$KC_DIR/project"
 DEFAULT_SESSIONS_DIR="$KC_DIR/sessions"
 
 # Interactive prompt for a sub-directory path.
-# Usage: ask_subdir_path <label> <default_path>
+# Usage: ask_subdir_path <label> <default_path> [<source_symlink>]
 # Sets REPLY_PATH to the chosen path and REPLY_SYMLINK to the symlink target (or empty).
+# When <source_symlink> is provided, a symlink to that path is proposed as the default choice.
 ask_subdir_path() {
   local label="$1"
   local default_path="$2"
+  local source_symlink="${3:-}"
 
   REPLY_PATH="$default_path"
   REPLY_SYMLINK=""
@@ -38,41 +40,84 @@ ask_subdir_path() {
   fi
 
   echo ""
-  echo "Chemin du dossier $label :"
-  echo "  1 - $default_path (defaut)"
-  echo "  2 - Autre chemin"
-  echo "  3 - Symlink vers un dossier existant"
-  read -rp "Choix [1] : " choice
-  choice="${choice:-1}"
+  echo "$label :"
 
-  case "$choice" in
-    1)
-      REPLY_PATH="$default_path"
-      ;;
-    2)
-      read -rp "Chemin : " custom_path
-      if [[ -z "$custom_path" ]]; then
-        echo "  (vide, utilisation du defaut)"
+  if [[ -n "$source_symlink" ]]; then
+    echo "  1 - Symlink vers $source_symlink (defaut)"
+    echo "  2 - $default_path (local)"
+    echo "  3 - Autre chemin"
+    echo "  4 - Symlink vers un dossier existant"
+    read -rp "Choix [1] : " choice
+    choice="${choice:-1}"
+
+    case "$choice" in
+      1)
         REPLY_PATH="$default_path"
-      else
-        REPLY_PATH="$custom_path"
-      fi
-      ;;
-    3)
-      read -rp "Chemin cible du symlink : " symlink_target
-      if [[ -z "$symlink_target" ]]; then
-        echo "  (vide, utilisation du defaut sans symlink)"
+        REPLY_SYMLINK="$source_symlink"
+        ;;
+      2)
         REPLY_PATH="$default_path"
-      else
+        ;;
+      3)
+        read -rp "Chemin : " custom_path
+        if [[ -z "$custom_path" ]]; then
+          echo "  (vide, utilisation du defaut)"
+          REPLY_SYMLINK="$source_symlink"
+        else
+          REPLY_PATH="$custom_path"
+        fi
+        ;;
+      4)
+        read -rp "Chemin cible du symlink : " symlink_target
+        if [[ -z "$symlink_target" ]]; then
+          echo "  (vide, utilisation du defaut)"
+          REPLY_SYMLINK="$source_symlink"
+        else
+          REPLY_PATH="$default_path"
+          REPLY_SYMLINK="$symlink_target"
+        fi
+        ;;
+      *)
+        echo "  Choix invalide, utilisation du defaut"
+        REPLY_SYMLINK="$source_symlink"
+        ;;
+    esac
+  else
+    echo "  1 - $default_path (defaut)"
+    echo "  2 - Autre chemin"
+    echo "  3 - Symlink vers un dossier existant"
+    read -rp "Choix [1] : " choice
+    choice="${choice:-1}"
+
+    case "$choice" in
+      1)
         REPLY_PATH="$default_path"
-        REPLY_SYMLINK="$symlink_target"
-      fi
-      ;;
-    *)
-      echo "  Choix invalide, utilisation du defaut"
-      REPLY_PATH="$default_path"
-      ;;
-  esac
+        ;;
+      2)
+        read -rp "Chemin : " custom_path
+        if [[ -z "$custom_path" ]]; then
+          echo "  (vide, utilisation du defaut)"
+          REPLY_PATH="$default_path"
+        else
+          REPLY_PATH="$custom_path"
+        fi
+        ;;
+      3)
+        read -rp "Chemin cible du symlink : " symlink_target
+        if [[ -z "$symlink_target" ]]; then
+          echo "  (vide, utilisation du defaut sans symlink)"
+          REPLY_PATH="$default_path"
+        else
+          REPLY_PATH="$default_path"
+          REPLY_SYMLINK="$symlink_target"
+        fi
+        ;;
+      *)
+        echo "  Choix invalide, utilisation du defaut"
+        REPLY_PATH="$default_path"
+        ;;
+    esac
+  fi
 }
 
 # Create a directory or symlink based on ask_subdir_path results.
@@ -210,15 +255,17 @@ do_init() {
   echo "Initializing kiss-claw in $(pwd)/$KC_DIR ..."
 
   # --- 2.1 Interactive dialogue for each sub-directory ---
-  ask_subdir_path "agents" "$DEFAULT_AGENTS_DIR"
+  local source_agents_dir="$REPO_DIR/.kiss-claw/agents"
+
+  ask_subdir_path "Chemin du dossier de persistance des agents (prompts additionnels)" "$DEFAULT_AGENTS_DIR" "$source_agents_dir"
   local agents_path="$REPLY_PATH"
   local agents_symlink="$REPLY_SYMLINK"
 
-  ask_subdir_path "project" "$DEFAULT_PROJECT_DIR"
+  ask_subdir_path "Chemin de persistance des donnees projects" "$DEFAULT_PROJECT_DIR"
   local project_path="$REPLY_PATH"
   local project_symlink="$REPLY_SYMLINK"
 
-  ask_subdir_path "sessions" "$DEFAULT_SESSIONS_DIR"
+  ask_subdir_path "Chemin de persistance des donnees de sessions" "$DEFAULT_SESSIONS_DIR"
   local sessions_path="$REPLY_PATH"
   local sessions_symlink="$REPLY_SYMLINK"
 
