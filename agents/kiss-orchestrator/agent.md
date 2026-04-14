@@ -225,6 +225,9 @@ After the INIT protocol completes (plan and state are written), the orchestrator
    task: "INIT — Plan généré, CHECKPOINT initialisé"
    result: "<résumé détaillé de ce qui a été planifié>"' | \
    KISS_CLAW_SESSION=$KISS_CLAW_SESSION bash scripts/store.sh checkpoint upsert "$MY_CLAUDE_SESSION"
+
+   # Enrich the CHECKPOINT entry from this session's transcript
+   KISS_CLAW_SESSION=$KISS_CLAW_SESSION python3 scripts/checkpoint_enrich.py "$KISS_CLAW_SESSION" --step "$MY_CLAUDE_SESSION"
    ```
 
 ### CHECKPOINT tracking continu
@@ -248,11 +251,12 @@ At each delegation to another agent, the orchestrator MUST:
    ```
    PARENT_CLAUDE_SESSION=$MY_CLAUDE_SESSION
 
-   CHECKPOINT: En fin de tâche, appelle :
-   echo 'agent: <ton_nom>
-   task: "<description détaillée quasi-verbatim>"
-   result: "<résultat détaillé quasi-verbatim>"' | \
-   KISS_CLAW_SESSION=<session_id> bash scripts/store.sh checkpoint upsert "$MY_CLAUDE_SESSION" --parent "$PARENT_CLAUDE_SESSION"
+   CHECKPOINT: En fin de tâche :
+   1. echo 'agent: <ton_nom>
+      task: "<description détaillée quasi-verbatim>"
+      result: "<résultat détaillé quasi-verbatim>"' | \
+      KISS_CLAW_SESSION=<session_id> bash scripts/store.sh checkpoint upsert "$MY_CLAUDE_SESSION" --parent "$PARENT_CLAUDE_SESSION"
+   2. KISS_CLAW_SESSION=<session_id> python3 scripts/checkpoint_enrich.py "<session_id>" --step "$MY_CLAUDE_SESSION"
    ```
    The subagent detects its own `MY_CLAUDE_SESSION` at runtime (see subagent detection mechanism in each agent.md).
 

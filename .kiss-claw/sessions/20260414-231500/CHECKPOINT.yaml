@@ -28,13 +28,13 @@ constraints: |
 log:
   - agent: "kiss-orchestrator"
     claude_session: "orchestrator-20260414-231500"
-    timestamp: "2026-04-14T20:33:35Z"
-    task: "Delegation kiss-executor — Rework REV-0002 (block scalars + --transcripts-dir)"
+    timestamp: "2026-04-14T20:44:43Z"
+    task: "Delegation kiss-executor — Phase 3 (skill command + adaptation 4 agents)"
     result: "En cours — delegue a kiss-executor"
     children:
       - agent: "kiss-executor"
         claude_session: "executor-20260414-231500"
-        timestamp: "2026-04-14T20:36:42Z"
-        task: "Rework REV-0002 — block scalars YAML + --transcripts-dir parameter"
-        result: "Changed classify_blocks() to join lists into strings with double-newline separator. Added BlockStyleDumper for YAML block scalar output. Added --transcripts-dir CLI parameter to _find_transcript() and main(). Updated test assertions from list iteration to string containment checks. All 8 tests PASS, runner dry-run PASS (3/3 scenarios)."
+        timestamp: "2026-04-14T20:46:32Z"
+        task: "Phase 3 — skill command kiss-checkpoint-enrich + adaptation 4 agents"
+        result: "Created commands/kiss-checkpoint-enrich.md slash command. Added enrichment call (python3 scripts/checkpoint_enrich.py) after checkpoint upsert in all 4 agent files: kiss-orchestrator (INIT + delegation template), kiss-executor, kiss-verificator, kiss-improver."
         children: []
