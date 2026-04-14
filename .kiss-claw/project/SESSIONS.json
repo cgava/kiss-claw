@@ -15,8 +15,16 @@
     {
       "id": "20260414-082706",
       "created": "2026-04-14T08:27:06",
-      "status": "in_progress",
-      "title": "CHECKPOINT.yaml + Journal évolutions projet"
+      "status": "done",
+      "title": "CHECKPOINT.yaml + Journal évolutions projet",
+      "closed": "2026-04-14T09:00:00",
+      "summary": {
+        "need": "Implémenter un système de traçabilité session-scoped (CHECKPOINT.yaml) avec suivi hiérarchique des appels agents/sub-agents, descriptions verbatim, et chaîne complète SESSIONS.json → CHECKPOINT.yaml → sessions Claude. Enrichir SESSIONS.json comme journal grosse maille des évolutions projet. Script de sync des sessions Claude.",
+        "outcome": "store.sh étendu de 196 à 481 lignes avec checkpoint init-need et upsert (par claude_session, avec --parent pour hiérarchie). 4 agents instrumentés pour logger automatiquement dans CHECKPOINT. Protocole close session ajouté à l orchestrator. sync-sessions.sh créé (rsync, --dry-run, --clean). backfill-checkpoint.sh comme transition temporaire.",
+        "files_changed": [".gitignore", "CLAUDE.md", "agents/kiss-executor/agent.md", "agents/kiss-improver/agent.md", "agents/kiss-orchestrator/agent.md", "agents/kiss-verificator/agent.md", "scripts/backfill-checkpoint.sh", "scripts/store.sh", "scripts/sync-sessions.sh"],
+        "decisions": ["Format YAML plutôt que JSON pour lisibilité multi-ligne", "store.sh = seul point d écriture CHECKPOINT (upsert par claude_session)", "Placeholder session ID (<agent>-$KISS_CLAW_SESSION) en attendant sync", "Script backfill temporaire pour bootstrapper la session courante", "claude-sessions/ séparé des sessions kiss-claw"],
+        "next": ["Tester le workflow complet en conditions réelles (nouvelle session)", "Implémenter la résolution automatique des claude_session IDs", "Nettoyer backfill-checkpoint.sh quand le mécanisme natif est rodé"]
+      }
     }
   ]
 }
