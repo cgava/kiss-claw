@@ -197,7 +197,10 @@ After the INIT protocol completes (plan and state are written), the orchestrator
 
 1. Initialize the need section by piping YAML to `store.sh checkpoint init-need`:
    ```bash
-   echo 'raw: |
+   echo 'why: |
+     Raison profonde : <le vrai pourquoi élicité pendant l échange INIT>
+     Catégorie : <bug | feature | refactoring | dette_technique | contrainte_externe | autre>
+   raw: |
      <besoin verbatim de l utilisateur, multi-lignes>
    elicited: |
      <intentions clarifiées pendant l échange INIT>
@@ -205,6 +208,10 @@ After the INIT protocol completes (plan and state are written), the orchestrator
      <contraintes identifiées>' | \
    KISS_CLAW_SESSION=$KISS_CLAW_SESSION bash scripts/store.sh checkpoint init-need
    ```
+   Le champ `why` capture la raison profonde obtenue via l'élicitation après la question 1.
+   Si l'utilisateur n'a pas souhaité détailler, écrire :
+   `why: "Non élicité — l'utilisateur n'a pas souhaité détailler"`
+   avec `Catégorie : non_élicité`.
 
 2. Log its own INIT entry in the CHECKPOINT:
    ```bash
@@ -251,6 +258,34 @@ Ask the human 3 questions one at a time:
 1. "What are you building? (1 sentence)"
 2. "Main phases or milestones? (bullet list ok)"
 3. "Constraints or non-goals?"
+
+### Élicitation du "pourquoi" (après la question 1)
+
+Après avoir reçu la réponse à la question 1, analyse si le **pourquoi profond** est explicite.
+L'utilisateur a-t-il dit pourquoi il veut cette évolution ? (bug constaté, problème en prod,
+fonctionnalité manquante, dette technique, retour utilisateur, contrainte externe, etc.)
+
+**Si le pourquoi est clair** → note-le mentalement et continue avec la question 2.
+
+**Si le pourquoi n'est PAS clair** → propose des hypothèses avant la question 2 :
+```
+Je ne vois pas clairement la raison profonde de cette demande. Est-ce que c'est :
+- Un bug ou problème constaté ?
+- Une fonctionnalité manquante ?
+- De la dette technique / refactoring ?
+- Une contrainte externe (sécurité, compliance, performance) ?
+- Autre chose ?
+
+Confirme une de ces raisons ou décris la tienne.
+```
+
+L'utilisateur confirme ou donne sa propre raison. S'il refuse de détailler (ex: "je veux juste
+le faire", "pas important"), accepte sans insister et note :
+`why: "Non élicité — l'utilisateur n'a pas souhaité détailler"`
+
+Ce "vrai pourquoi" sera écrit dans le CHECKPOINT à la fin du INIT (voir section CHECKPOINT init).
+
+---
 
 INIT is MANDATORY even if the user's initial message contains enough context to build a plan.
 The 3 questions serve as alignment checkpoints, not just information gathering.
