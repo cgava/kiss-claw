@@ -84,6 +84,10 @@ When the user says `list` or the agent is invoked with argument `list`:
    ```
 5. Do NOT proceed with the normal startup protocol. Return after displaying.
 
+### `close session` — Close and summarize the active session
+
+See dedicated section below: **Close session protocol**.
+
 ### `resume <id>` — Resume an existing session
 
 When the user says `resume <id>` or the agent is invoked with argument `resume <id>`:
@@ -124,16 +128,35 @@ Format:
       "created": "2026-04-13T15:30:22",
       "status": "in_progress",
       "title": "Titre du plan"
+    },
+    {
+      "id": "20260414-082706",
+      "created": "2026-04-14T08:27:06",
+      "status": "done",
+      "title": "CHECKPOINT.yaml + Journal evolutions projet",
+      "closed": "2026-04-14T10:45:00",
+      "summary": {
+        "need": "Implémenter CHECKPOINT.yaml session-scoped avec traçabilité complète...",
+        "outcome": "store.sh supporte checkpoint init-need + upsert. 4 agents instrumentés...",
+        "files_changed": ["scripts/store.sh", "agents/kiss-orchestrator/agent.md"],
+        "decisions": ["Format YAML plutôt que JSON", "Placeholder session ID en attendant sync"],
+        "next": ["Script sync-sessions.sh", "Tester en conditions réelles"]
+      }
     }
   ]
 }
 ```
 
+The `closed` and `summary` fields are only present on sessions with `status: "done"` that have been
+closed via the `close session` command. Sessions with `status: "in_progress"` have only `id`,
+`created`, `status`, and `title`. Older sessions without `summary` remain valid (backward compatible).
+
 Rules:
 - On **session creation**: read the current SESSIONS.json, add a new entry with `status: "in_progress"`
   and `title: ""` (title is updated after INIT completes with the plan title). Write back via store.sh.
-- On **session close/completion**: read the current SESSIONS.json, find the entry by `id`, set
-  `status` to `"done"`. Write back via store.sh.
+- On **session close**: read the current SESSIONS.json, find the entry by `id`, set
+  `status` to `"done"`, add `closed` (ISO datetime) and `summary` object. Write back via store.sh.
+  See **Close session protocol** for the full procedure.
 - The agent manipulates the JSON content itself (no jq). It reads the text, modifies it in memory,
   and writes the full content back.
 - If SESSIONS.json does not exist or is empty, start with `{"sessions": []}`.
@@ -280,6 +303,52 @@ Phase N complete. Run /kiss-improver to extract improvement proposals from recen
 
 - Keep `state` under 80 lines. Archive old log entries to `scratch` via `/kiss-store append scratch`.
 - Keep `memory:kiss-orchestrator` under 60 lines. Merge similar entries.
+
+## Close session protocol
+
+When the user says `close session` or when the plan is fully completed:
+
+The orchestrator performs this synthesis itself — it is planning/coordination work, NOT delegated to kiss-executor.
+
+### Procedure
+
+1. **Read CHECKPOINT**: `bash scripts/store.sh read checkpoint` (with `KISS_CLAW_SESSION` set).
+
+2. **Build the summary object** from the CHECKPOINT content:
+   - `need`: extract from the `need.raw` section — summarize in 2-3 sentences.
+   - `outcome`: synthesize the `log` entries — what was concretely achieved.
+   - `files_changed`: list modified files from the log, or via `git diff --name-only <commit_start>..HEAD`.
+   - `decisions`: extract major decisions taken during the session (architectural choices, format choices, trade-offs).
+   - `next`: identify follow-ups or remaining work. Use `"none"` if everything is done.
+
+3. **Update SESSIONS.json**:
+   - Read via `bash scripts/store.sh read sessions`.
+   - Find the entry matching `id == $KISS_CLAW_SESSION`.
+   - Set `status` to `"done"`.
+   - Add `closed` with current ISO datetime (e.g., `"2026-04-14T10:45:00"`).
+   - Add the `summary` object built in step 2.
+   - Write back via `bash scripts/store.sh write sessions` (pipe the full JSON to stdin).
+
+4. **Update state**: `bash scripts/store.sh update state status "done"`.
+
+5. **Display the closing banner**:
+   ```
+   === SESSION CLOSED ===
+   Session  : <id>
+   Title    : <title>
+   Duration : <created> -> <closed>
+   Files    : <N> files changed
+   Next     : <follow-ups or "none">
+   =====================
+   ```
+
+### Summary quality guidelines
+
+- The summary must be **detailed but synthetic** — not a copy of the CHECKPOINT.
+- `need` captures the original intent, not the implementation details.
+- `outcome` focuses on deliverables: what was built, what works now.
+- `decisions` records only major choices (not every micro-decision).
+- `next` is actionable: specific tasks, not vague aspirations.
 
 ---
 
