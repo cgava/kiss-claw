@@ -27,3 +27,11 @@ Orchestrator decides which mode to use per step based on the nature of the work.
 - After every kiss-executor task, MUST invoke kiss-verificator to review the output before moving to the next step
 - When verificator returns notes (approved-with-notes or needs-rework): commit WIP FIRST, then rework, then commit fix separately. Two commits per rework cycle, never one merged commit.
 
+## Commit message format
+
+- MUST include the phase number in every commit message, following this pattern: `type(scope): Phase N - description`
+- Examples from project history:
+  - `feat(docs): Phase 3 - workflow integration for kiss-help documentation`
+  - `fix(sync): Phase 3 - rework from REV-0003 — gitignore, dead code, CHECKPOINT extension`
+  - `feat(orchestrator): Phase 1 - elicit the real "why" during INIT protocol`
+

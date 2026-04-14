@@ -45,7 +45,7 @@ PROJECT_SLUG="${PROJECT_ROOT//\//-}"
 
 SOURCE_DIR="$CLAUDE_PROJECTS_DIR/$PROJECT_SLUG"
 KC_DIR="${KISS_CLAW_DIR:-$PROJECT_ROOT/.kiss-claw}"
-DEST_DIR="$KC_DIR/claude-sessions"
+DEST_DIR="$KC_DIR/sessions/claude-sessions"
 
 if [[ ! -d "$SOURCE_DIR" ]]; then
   echo "error: Claude sessions directory not found: $SOURCE_DIR" >&2
