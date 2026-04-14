@@ -2,6 +2,21 @@
 
 kiss-claw est un plugin d'orchestration multi-agents pour Claude Code. Quatre agents specialises (orchestrator, executor, verificator, improver) coordonnent via des fichiers d'etat persistants pour planifier, implementer, reviewer et ameliorer du code.
 
+## Acces rapide
+
+Utilisez la commande `/kiss-help` pour naviguer dans cette documentation directement depuis Claude Code :
+
+```
+/kiss-help                    Cet index
+/kiss-help tutorials          Tutoriels pas a pas
+/kiss-help how-to             Guides pratiques
+/kiss-help reference          References techniques
+/kiss-help explanation        Articles de fond
+/kiss-help <nom-page>         Une page specifique (ex: store-sh, architecture)
+/kiss-help search <termes>    Rechercher dans la doc
+/kiss-help list               Lister toutes les pages
+```
+
 ## Tutorials
 
 Lecons guidees pas a pas pour debutants.

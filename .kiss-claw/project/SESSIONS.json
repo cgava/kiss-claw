@@ -25,6 +25,12 @@
         "decisions": ["Format YAML plutôt que JSON pour lisibilité multi-ligne", "store.sh = seul point d écriture CHECKPOINT (upsert par claude_session)", "Placeholder session ID (<agent>-$KISS_CLAW_SESSION) en attendant sync", "Script backfill temporaire pour bootstrapper la session courante", "claude-sessions/ séparé des sessions kiss-claw"],
         "next": ["Tester le workflow complet en conditions réelles (nouvelle session)", "Implémenter la résolution automatique des claude_session IDs", "Nettoyer backfill-checkpoint.sh quand le mécanisme natif est rodé"]
       }
+    },
+    {
+      "id": "20260414-143500",
+      "created": "2026-04-14T14:35:00",
+      "status": "in_progress",
+      "title": "Documentation Diátaxis kiss-claw"
     }
   ]
 }
