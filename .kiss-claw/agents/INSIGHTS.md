@@ -381,3 +381,130 @@ Les noms de fichiers varient aussi : REVIEW.md vs REVIEWS.md, IMPROVEMENTS.md vs
 3. Investiguer pourquoi init.sh est invoqué dans certains runs et pas d'autres
 
 **Rejection reason**
+### INS-0018
+
+- **session**   : 589d5e8e-a6db-44e5-bef1-c91d1c370851
+- **session-agent** : kiss-orchestrator
+- **date**      : 2026-04-14
+- **target**    : agent:kiss-orchestrator
+- **type**      : fact
+- **confidence**: high
+- **status**    : applied
+- **applied_at**: 2026-04-14
+
+**Fact**
+kiss-orchestrator a créé PLAN.md et STATE.md dans `.kiss/` (un dossier inventé) au lieu de `.kiss-claw/sessions/<id>/`. L'agent n'a jamais exécuté le startup protocol : pas de génération de session ID, pas d'appel à `store.sh`, pas de SESSIONS.json. Il a utilisé `mkdir -p .kiss` puis `Write` directement. C'est la 3ème session où l'agent écrit les fichiers au mauvais endroit (voir aussi INS-0015, INS-0017).
+
+**Proposal**
+Ce problème est récurrent malgré les instructions existantes dans agent.md. Renforcer la section startup protocol avec un bloc de garde **avant toute autre action** :
+
+```
+## CRITICAL FIRST ACTION (before anything else)
+
+1. Generate session ID: YYYYMMDD-HHmmss
+2. export KISS_CLAW_SESSION=<id>
+3. bash scripts/store.sh write state (creates .kiss-claw/sessions/<id>/)
+4. bash scripts/store.sh write plan
+
+If you find yourself about to write PLAN.md or STATE.md via Write/Edit tool:
+STOP. You are violating the protocol. Use store.sh.
+If you find yourself creating a directory that is NOT .kiss-claw/sessions/<id>/:
+STOP. You are violating the protocol.
+```
+
+De plus, ajouter un self-check en début d'agent.md :
+```
+SELF-CHECK: The ONLY valid paths for session files are:
+  .kiss-claw/sessions/<session-id>/PLAN.md
+  .kiss-claw/sessions/<session-id>/STATE.md
+Any other path (.kiss/, .kiss-claw/PLAN.md, root PLAN.md) is WRONG.
+```
+
+**Rejection reason**
+
+
+### INS-0019
+
+- **session**   : 589d5e8e-a6db-44e5-bef1-c91d1c370851
+- **session-agent** : kiss-orchestrator
+- **date**      : 2026-04-14
+- **target**    : agent:kiss-orchestrator
+- **type**      : fact
+- **confidence**: high
+- **status**    : applied
+- **applied_at**: 2026-04-14
+
+**Fact**
+L'agent n'a pas exécuté le protocole INIT (3 questions une par une). Il a directement exploré le projet via un sous-agent Explore, puis produit le PLAN.md sans poser de questions à l'utilisateur. L'agent.md dit : "Ask the human 3 questions one at a time: 1. What are you building? 2. Main phases or milestones? 3. Constraints or non-goals?" — aucune de ces questions n'a été posée.
+
+**Proposal**
+Rendre le protocole INIT non-contournable en ajoutant :
+```
+INIT is MANDATORY even if the user's initial message contains enough context.
+The 3 questions serve as alignment checkpoints, not just information gathering.
+If the user already provided answers, confirm them:
+  "You said you're building X — correct, or should I adjust?"
+```
+
+**Rejection reason**
+
+
+### INS-0020
+
+- **session**   : 589d5e8e-a6db-44e5-bef1-c91d1c370851
+- **session-agent** : kiss-orchestrator
+- **date**      : 2026-04-14
+- **target**    : agent:kiss-orchestrator
+- **type**      : fact
+- **confidence**: high
+- **status**    : rejected
+
+**Fact**
+L'agent a créé le dossier `.kiss` — un nom qui n'existe dans aucune documentation kiss-claw. Ce n'est ni `.kiss-claw` (v7) ni `.kiss-claw/sessions/<id>` (v8). L'agent a inventé un chemin. Cela suggère que l'agent ne lit pas store.sh et ne connaît pas la structure de fichiers réelle.
+
+**Proposal**
+Ajouter un bloc de contrainte explicite dans agent.md avec les chemins hardcodés.
+
+**Rejection reason**
+Les chemins sont la responsabilité de store.sh (configurable via KISS_CLAW_DIR, etc.). Hardcoder les chemins dans agent.md violerait cette séparation. La bonne solution est d'ajouter un mode d'inspection à store.sh pour que l'agent puisse découvrir les chemins résolus. Voir INS-0021.
+
+
+### INS-0021
+
+- **session**   : 589d5e8e-a6db-44e5-bef1-c91d1c370851
+- **session-agent** : kiss-orchestrator
+- **date**      : 2026-04-14
+- **target**    : agent:kiss-orchestrator
+- **type**      : proposal
+- **confidence**: high
+- **status**    : applied
+- **applied_at**: 2026-04-14
+
+**Fact**
+L'agent a créé `.kiss/` au lieu de `.kiss-claw/sessions/<id>/`. Il ne connaît pas les chemins résolus car il n'appelle jamais store.sh. Hardcoder les chemins dans agent.md n'est pas la solution — store.sh est configurable (KISS_CLAW_DIR, etc.). L'agent a besoin d'un moyen de **découvrir** les chemins résolus.
+
+**Proposal**
+1. Ajouter une action `inspect` à `scripts/store.sh` qui affiche la configuration résolue :
+```bash
+  inspect)
+    echo "kiss_claw_dir: $KC_DIR"
+    echo "agents_dir: $AGENTS_DIR"
+    echo "project_dir: $PROJECT_DIR"
+    echo "sessions_dir: $SESSIONS_DIR"
+    echo "session: ${KISS_CLAW_SESSION:-<not set>}"
+    if [[ -n "${KISS_CLAW_SESSION:-}" ]]; then
+      echo "session_path: $SESSIONS_DIR/$KISS_CLAW_SESSION"
+    fi
+    # Show resolved paths for all resources
+    echo "---"
+    echo "Resources:"
+    for r in plan state reviews scratch checkpoint memory insights analyzed sessions; do
+      path=$(resolve "$r" 2>/dev/null) && echo "  $r: $path" || echo "  $r: (requires session)"
+    done
+    ;;
+```
+
+2. Modifier la startup protocol de kiss-orchestrator pour commencer par `bash scripts/store.sh inspect` afin de vérifier la configuration avant toute écriture.
+
+**Rejection reason**
+

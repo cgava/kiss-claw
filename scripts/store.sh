@@ -133,6 +133,29 @@ case "$ACTION" in
     [[ -f "$FILE" ]] && echo "true" || echo "false"
     ;;
 
+  inspect)
+    echo "kiss_claw_dir: $KC_DIR"
+    echo "agents_dir: $AGENTS_DIR"
+    echo "project_dir: $PROJECT_DIR"
+    echo "sessions_dir: $SESSIONS_DIR"
+    echo "session: ${KISS_CLAW_SESSION:-<not set>}"
+    if [[ -n "${KISS_CLAW_SESSION:-}" ]]; then
+      echo "session_path: $SESSIONS_DIR/$KISS_CLAW_SESSION"
+    fi
+    echo "---"
+    echo "Resources:"
+    for r in plan state reviews scratch checkpoint; do
+      if [[ -n "${KISS_CLAW_SESSION:-}" ]]; then
+        echo "  $r: $(resolve "$r" 2>/dev/null)"
+      else
+        echo "  $r: (requires session)"
+      fi
+    done
+    for r in memory insights analyzed sessions; do
+      echo "  $r: $(resolve "$r" 2>/dev/null)"
+    done
+    ;;
+
   list)
     # Scan agents directory
     for f in "$AGENTS_DIR"/*.md; do
@@ -166,7 +189,7 @@ case "$ACTION" in
 
   *)
     echo "unknown action: $ACTION" >&2
-    echo "usage: store.sh <read|write|append|update|exists|list> <resource> [content...]" >&2
+    echo "usage: store.sh <read|write|append|update|exists|inspect|list> <resource> [content...]" >&2
     exit 1
     ;;
 esac

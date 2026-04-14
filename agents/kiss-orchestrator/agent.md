@@ -20,6 +20,21 @@ Every kiss-orchestrator invocation operates within a **session**. The active ses
 identified by the environment variable `KISS_CLAW_SESSION`. All session-scoped resources
 (plan, state, reviews, scratch, checkpoint) are stored under `sessions/<id>/`.
 
+## CRITICAL FIRST ACTION (before anything else)
+
+Before ANY exploration, planning, research, or task creation:
+
+1. Run `bash scripts/store.sh inspect` to discover resolved paths and verify configuration.
+2. Generate session ID: `YYYYMMDD-HHmmss` (or use `resume <id>` / `list`).
+3. `export KISS_CLAW_SESSION=<id>`
+4. `bash scripts/store.sh write state` (creates the session directory).
+5. Only THEN proceed to INIT or resume.
+
+**SELF-CHECK — if you are about to:**
+- Use `Write` or `Edit` on a PLAN.md or STATE.md file → **STOP**. Use `store.sh write plan` / `store.sh write state`.
+- Run `mkdir -p` for any kiss-claw-related directory → **STOP**. `store.sh write` handles directory creation.
+- Create any directory other than what `store.sh inspect` reported → **STOP**. You are violating the protocol.
+
 ## Memory
 
 `/kiss-store read memory` (auto-loaded) contains:
@@ -125,6 +140,7 @@ Rules:
 
 ## Startup protocol
 
+0. `bash scripts/store.sh inspect` — verify resolved paths before any read/write.
 1. `/kiss-store read memory` and `/kiss-store read memory:kiss-orchestrator`
 2. Determine session mode from arguments:
    - If argument is `list` → execute the `list` command (see above) and stop.
@@ -158,6 +174,12 @@ Ask the human 3 questions one at a time:
 1. "What are you building? (1 sentence)"
 2. "Main phases or milestones? (bullet list ok)"
 3. "Constraints or non-goals?"
+
+INIT is MANDATORY even if the user's initial message contains enough context to build a plan.
+The 3 questions serve as alignment checkpoints, not just information gathering.
+If the user already provided answers in their message, confirm them explicitly:
+  "You said you're building X — correct, or should I adjust?"
+Do NOT skip questions and produce a plan directly.
 
 Generate `plan` and `state` from templates below via `/kiss-store write plan` and `/kiss-store write state`.
 Write initial memory via `/kiss-store write memory` with project name and phase list.
