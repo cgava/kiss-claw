@@ -265,6 +265,21 @@ Run /insights to review proposals
 =========================
 ```
 
+### Step 7.5 — CHECKPOINT logging
+
+After the summary, if `KISS_CLAW_SESSION` is set, log the analysis to the CHECKPOINT.
+The `task` and `result` fields MUST be quasi-verbatim from the summary output:
+```bash
+echo 'agent: kiss-improver
+task: "Analyse de N sessions"
+result: "N facts, N proposals générés. Top proposal: <one line>. Token stats mis à jour."' | \
+KISS_CLAW_SESSION=$KISS_CLAW_SESSION bash scripts/store.sh checkpoint upsert "improver-$KISS_CLAW_SESSION" \
+  --parent "<parent_session si fourni par orchestrator>"
+```
+Note: `claude_session_placeholder` uses `"improver-$KISS_CLAW_SESSION"` until the Phase 3
+sync mechanism provides automatic session ID resolution.
+If no `--parent` was provided by kiss-orchestrator, omit the `--parent` flag.
+
 ---
 
 ## /tokens command

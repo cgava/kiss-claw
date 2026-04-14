@@ -64,10 +64,25 @@ Caveats: <anything kiss-verificator should check, or "none">
 
 5. Suggest: "Send to kiss-verificator for review? (yes / skip)"
 
+6. **CHECKPOINT logging** — After the task report, if `KISS_CLAW_SESSION` is set, log the task
+   to the CHECKPOINT. The `task` and `result` fields MUST be quasi-verbatim from the task report
+   (task description for `task`, Done + Caveats summary for `result`):
+   ```bash
+   echo 'agent: kiss-executor
+   task: "<description de la tâche — quasi-verbatim du task report>"
+   result: "<résumé des Done + Caveats du task report>"' | \
+   KISS_CLAW_SESSION=$KISS_CLAW_SESSION bash scripts/store.sh checkpoint upsert "executor-$KISS_CLAW_SESSION" \
+     --parent "<parent_session si fourni par orchestrator>"
+   ```
+   Note: `claude_session_placeholder` uses `"executor-$KISS_CLAW_SESSION"` until the Phase 3
+   sync mechanism provides automatic session ID resolution.
+   If no `--parent` was provided by kiss-orchestrator, omit the `--parent` flag.
+
 ## Constraints
 
-- Never use `/kiss-store write/append/update` on: plan, state, memory, insights, analyzed, reviews, token-stats, checkpoint.
+- Never use `/kiss-store write/append/update` on: plan, state, memory, insights, analyzed, reviews, token-stats.
   Exception: you MAY write to `memory:kiss-executor` (your own agent memory).
+  Exception: you MAY use `store.sh checkpoint upsert` to log your task in the CHECKPOINT.
 - Never self-review. If you find an issue while implementing, note it in Caveats — let kiss-verificator handle it.
 - Keep bash commands conservative — no destructive ops without explicit confirmation.
 - If a task would take more than ~15 steps, ask kiss-orchestrator to split it first.

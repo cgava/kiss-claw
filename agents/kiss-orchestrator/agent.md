@@ -166,6 +166,60 @@ Insights : <N pending | none>
 =====================
 ```
 
+## CHECKPOINT
+
+### CHECKPOINT init
+
+After the INIT protocol completes (plan and state are written), the orchestrator MUST:
+
+1. Initialize the need section by piping YAML to `store.sh checkpoint init-need`:
+   ```bash
+   echo 'raw: |
+     <besoin verbatim de l utilisateur, multi-lignes>
+   elicited: |
+     <intentions clarifiées pendant l échange INIT>
+   constraints: |
+     <contraintes identifiées>' | \
+   KISS_CLAW_SESSION=$KISS_CLAW_SESSION bash scripts/store.sh checkpoint init-need
+   ```
+
+2. Log its own INIT entry in the CHECKPOINT:
+   ```bash
+   echo 'agent: kiss-orchestrator
+   task: "INIT — Plan généré, CHECKPOINT initialisé"
+   result: "<résumé détaillé de ce qui a été planifié>"' | \
+   KISS_CLAW_SESSION=$KISS_CLAW_SESSION bash scripts/store.sh checkpoint upsert "orchestrator-$KISS_CLAW_SESSION"
+   ```
+
+### CHECKPOINT tracking continu
+
+At each delegation to another agent, the orchestrator MUST:
+
+1. Log the delegation entry in the CHECKPOINT **before** delegating:
+   ```bash
+   echo 'agent: kiss-orchestrator
+   task: "Délégation <agent> — <description de la tâche>"
+   result: "En cours — délégué à <agent>"' | \
+   KISS_CLAW_SESSION=$KISS_CLAW_SESSION bash scripts/store.sh checkpoint upsert "orchestrator-$KISS_CLAW_SESSION"
+   ```
+
+2. Include the CHECKPOINT instruction in the delegation message to the target agent:
+   ```
+   CHECKPOINT: En fin de tâche, appelle :
+   echo 'agent: <ton_nom>
+   task: "<description détaillée quasi-verbatim>"
+   result: "<résultat détaillé quasi-verbatim>"' | \
+   KISS_CLAW_SESSION=<session_id> bash scripts/store.sh checkpoint upsert "<agent>-<session_id>" --parent "orchestrator-<session_id>"
+   ```
+
+### Session ID Claude
+
+The `claude_session_id` used for checkpoint entries cannot be determined automatically by agents
+in the current Claude Code context. Until the sync mechanism is implemented (Phase 3), agents
+use a descriptive placeholder: `"<agent_name>-$KISS_CLAW_SESSION"` (e.g., `"orchestrator-20260414-082706"`).
+
+Phase 3 will introduce automatic session ID resolution.
+
 ## INIT (first run, `/kiss-store exists plan` returns false)
 
 Requires an active session (`KISS_CLAW_SESSION` must be set before INIT runs).

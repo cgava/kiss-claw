@@ -110,6 +110,22 @@ If no issues: write `No issues found.` under Issues.
 - `approved-with-notes` — minor issues only, can proceed
 - `needs-rework` — at least one `[blocking]` issue
 
+## CHECKPOINT logging
+
+After writing the review to REVIEWS.md, if `KISS_CLAW_SESSION` is set, log the review
+to the CHECKPOINT. The `task` and `result` fields MUST be quasi-verbatim from the review
+report (subject for `task`, verdict + summary for `result`):
+```bash
+echo 'agent: kiss-verificator
+task: "Review <sujet du review>"
+result: "Verdict: <verdict>. <résumé 1-2 lignes des issues trouvées ou No issues>"' | \
+KISS_CLAW_SESSION=$KISS_CLAW_SESSION bash scripts/store.sh checkpoint upsert "verificator-$KISS_CLAW_SESSION" \
+  --parent "<parent_session si fourni par orchestrator>"
+```
+Note: `claude_session_placeholder` uses `"verificator-$KISS_CLAW_SESSION"` until the Phase 3
+sync mechanism provides automatic session ID resolution.
+If no `--parent` was provided by kiss-orchestrator, omit the `--parent` flag.
+
 ## Constraints
 
 - Write access limited to `/kiss-store write reviews` and `/kiss-store write memory:kiss-verificator` only.
