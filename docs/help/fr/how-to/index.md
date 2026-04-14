@@ -9,3 +9,4 @@ Recettes pour accomplir un objectif precis. Chaque guide assume une competence d
 - [Mode dry-run](mode-dry-run.md) -- Activer et desactiver le mode dry-run
 - [Initialiser un projet](initialiser-projet.md) -- `init.sh` et configuration des repertoires
 - [Boucle d'amelioration](boucle-amelioration.md) -- kiss-improver : analyser, insights, appliquer
+- [Utiliser /kiss-help](utiliser-kiss-help.md) -- Naviguer dans la documentation avec le skill /kiss-help

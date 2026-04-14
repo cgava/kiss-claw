@@ -46,6 +46,8 @@ cat <<EOF
 Available agents:
 ${AGENT_LIST}
 
+📖 Documentation disponible : utilisez /kiss-help pour parcourir les guides et références.
+
 Ask the user: "Would you like me to route your request to a specific agent? If so, which one? Otherwise I'll continue as a general session."
 
 If the user picks an agent, write the agent name to the file .poc-session-agent and load the agent's instructions from its agent.md file before continuing.
