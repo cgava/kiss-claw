@@ -1,0 +1,232 @@
+session: "20260414-082706"
+created: "2026-04-14T08:27:06"
+claude_session: "90601659-132b-4d66-8b12-bc3a1b582c59"
+
+need:
+  why: |
+    Dette technique — les hooks sont cassés (ISSUE-005), le CHECKPOINT.md
+    existant est un format plat sans traçabilité. Impossible de relier les
+    étapes du plan aux sessions Claude réelles. Le journal projet (SESSIONS.json)
+    ne conserve aucun résumé de ce qui a été fait.
+    Catégorie : dette_technique
+  raw: |
+    Deux évolutions des agents kiss-claw :
+
+    1. L agent Orchestrator doit initialiser le CHECKPOINT avec le récapitulatif
+       précis du besoin utilisateur : le besoin tel que décrit par l utilisateur,
+       plus les intentions élicitées par l agent (en mode autonome ou via des
+       questions à l utilisateur).
+
+    2. Les hooks du projet sont désactivés (non-fonctionnels, ISSUE-005).
+       Workaround proposé : l orchestrator ajoute un suivi au cours du plan,
+       et demande à chaque agent délégué d y inscrire également son suivi
+       (ce qui a été demandé, et ce qui a été fait).
+
+    3. Le fichier CHECKPOINT passe au format YAML (pas JSON), session-scoped,
+       pour combiner hiérarchie et descriptions multi-lignes lisibles.
+
+    4. SESSIONS.json doit être enrichi pour devenir un journal des évolutions
+       du projet (vision grosse maille). À la fin d une session (ou sur demande),
+       une synthèse du CHECKPOINT est ajoutée à SESSIONS.json : besoin d origine,
+       modifications effectuées, décisions, fichiers changés, follow-ups.
+
+    5. Le CHECKPOINT doit conserver les identifiants de sessions Claude
+       (présents dans ~/.claude/projects/) pour chaque appel d agent et de
+       sub-agent. Chaîne de traçabilité complète :
+       SESSIONS.json → CHECKPOINT.yaml → sessions Claude.
+
+    6. Un script shell (scripts/sync-sessions.sh) doit permettre de récupérer
+       les sessions + sub-agent sessions depuis .claude/projects, avec rsync,
+       et proposer de nettoyer les sessions sources (--clean).
+
+  elicited: |
+    - Le CHECKPOINT.yaml est session-scoped, stocké dans .kiss-claw/sessions/<id>/
+    - Descriptions quasi-verbatim (pas de résumé appauvri)
+    - Structure hiérarchique (agent → children sub-agents)
+    - Section "need" détachée du log
+    - store.sh gère toutes les écritures CHECKPOINT : upsert par claude_session
+    - Phase de transition : backfill-checkpoint.sh comme workaround temporaire
+
+  constraints: |
+    - Pas toucher aux hooks (cassés, hors scope — ISSUE-005)
+    - Shell pur, zéro dépendance externe
+    - Format YAML pour lisibilité multi-ligne
+    - Descriptions verbatim (pas de résumé)
+    - store.sh = seul point d écriture CHECKPOINT
+
+log:
+  - phase: "Phase 0 — Préparation (backfill-checkpoint.sh)"
+    started: "2026-04-14T07:25:20Z"
+    ended: "2026-04-14T07:28:28Z"
+    steps:
+      - agent: "kiss-executor"
+        claude_session: "agent-a6ee0820e9b6e0823"
+        parent_session: "90601659-132b-4d66-8b12-bc3a1b582c59"
+        timestamp: "2026-04-14T07:25:20Z"
+        task: |
+          Créer scripts/backfill-checkpoint.sh — script temporaire de transition
+          pour rétro-alimenter le CHECKPOINT.yaml entre chaque phase.
+          Support --agent, --task, --result, --phase, --task-stdin, --dry-run.
+          Idempotent (dedup par agent+task). Shell pur.
+        result: |
+          scripts/backfill-checkpoint.sh créé (198 lignes, executable).
+          Testé : --help, --dry-run, log entry, phase marker, multi-line
+          via --task-stdin, idempotency, error handling.
+          Nettoyé les artefacts de test.
+        children: []
+
+      - agent: "kiss-verificator"
+        claude_session: "agent-ace13de3e261282a7"
+        parent_session: "90601659-132b-4d66-8b12-bc3a1b582c59"
+        timestamp: "2026-04-14T07:27:57Z"
+        task: "Review backfill-checkpoint.sh"
+        result: "Verdict : approved"
+        children: []
+
+  - phase: "Phase 1 — store.sh : support CHECKPOINT.yaml"
+    started: "2026-04-14T07:30:48Z"
+    ended: "2026-04-14T07:36:04Z"
+    steps:
+      - agent: "kiss-executor"
+        claude_session: "agent-ade9c400cdaaf7a91"
+        parent_session: "90601659-132b-4d66-8b12-bc3a1b582c59"
+        timestamp: "2026-04-14T07:30:48Z"
+        task: |
+          Phase 1 steps 1-4 : Modifier store.sh pour supporter CHECKPOINT.yaml.
+          Renommer CHECKPOINT.md → .yaml. Ajouter resolve/reverse_map/list pour .yaml.
+          Implémenter checkpoint init-need (crée header+need+log vide, erreur si doublon
+          sauf --force). Implémenter checkpoint upsert (insert/update par claude_session,
+          --parent pour children, idempotent). Parsing YAML via awk state-machine.
+        result: |
+          store.sh modifié (196→481 lignes). CHECKPOINT.md renommé en .yaml pour session
+          courante. Testé : init-need, top-level upsert, child upsert --parent, update
+          existant, idempotency, compat backfill-checkpoint.sh, read/list/exists/inspect.
+          Caveat : update awk gère single-line values only (suffisant pour le schéma actuel).
+        children: []
+
+      - agent: "kiss-verificator"
+        claude_session: "agent-a5f65a40b7fae0065"
+        parent_session: "90601659-132b-4d66-8b12-bc3a1b582c59"
+        timestamp: "2026-04-14T07:35:12Z"
+        task: |
+          Review Phase 1 : store.sh checkpoint init-need + upsert.
+          Tests fonctionnels (read, list, exists, upsert, backfill compat).
+          Code quality (parsing awk, injections, lisibilité).
+        result: |
+          Verdict : approved-with-notes. 3 issues mineures (grep regex→grep -qF,
+          awk regex→index(), trap tempfiles). Pas de régression sur commandes existantes.
+          Compat backfill-checkpoint.sh OK.
+        children: []
+
+  - phase: "Phase 2 — Agents : instrumentation CHECKPOINT"
+    started: "2026-04-14T07:39:02Z"
+    ended: "2026-04-14T07:41:57Z"
+    steps:
+      - agent: "kiss-executor"
+        claude_session: "agent-ad61cf58c7d6b2464"
+        parent_session: "90601659-132b-4d66-8b12-bc3a1b582c59"
+        timestamp: "2026-04-14T07:39:02Z"
+        task: |
+          Phase 2 : Instrumentation CHECKPOINT des 4 agents. Ajout sections CHECKPOINT
+          dans kiss-orchestrator (init-need + tracking continu + session ID),
+          kiss-executor (step 6 logging + retrait checkpoint des interdits),
+          kiss-verificator (logging après verdict),
+          kiss-improver (step 7.5 logging).
+        result: |
+          4 fichiers agent.md modifiés. Orchestrator : section CHECKPOINT avant INIT.
+          Executor : step 6 + constraint mise à jour. Verificator : section après verdict
+          rules. Improver : step 7.5 après summary.
+        children: []
+
+      - agent: "kiss-verificator"
+        claude_session: "agent-a0787d0266a827c4a"
+        parent_session: "90601659-132b-4d66-8b12-bc3a1b582c59"
+        timestamp: "2026-04-14T07:40:31Z"
+        task: |
+          Review Phase 2 : instrumentation CHECKPOINT des 4 agents. Vérification
+          cohérence store.sh upsert, format quasi-verbatim, placeholder session ID,
+          --parent, orchestrator init/tracking, constraints.
+        result: |
+          Verdict : needs-rework. 1 blocking : verificator Constraints manquait
+          exception checkpoint upsert. 1 minor : placeholder français dans template
+          orchestrator. Fix appliqué (2 commits : WIP + fix).
+        children: []
+
+  - phase: "Phase 3 — SESSIONS.json : journal évolutions + sync"
+    started: "2026-04-14T07:49:04Z"
+    ended: "2026-04-14T07:54:40Z"
+    steps:
+      - agent: "kiss-executor"
+        claude_session: "agent-a17b508ec2f8ec6a6"
+        parent_session: "90601659-132b-4d66-8b12-bc3a1b582c59"
+        timestamp: "2026-04-14T07:49:04Z"
+        task: |
+          Phase 3 steps 1-2 : Enrichir format SESSIONS.json (closed + summary avec
+          need/outcome/files_changed/decisions/next). Ajouter commande close session
+          dans orchestrator (synthèse CHECKPOINT → summary, 5 étapes, format affiché).
+        result: |
+          agents/kiss-orchestrator/agent.md modifié : table Session commands enrichie,
+          format SESSIONS.json documenté avec backward compat, protocole close session
+          complet (5 steps + guidelines qualité summary).
+        children: []
+
+      - agent: "kiss-verificator"
+        claude_session: "agent-aa8b44b3b988a2f05"
+        parent_session: "90601659-132b-4d66-8b12-bc3a1b582c59"
+        timestamp: "2026-04-14T07:50:31Z"
+        task: "Review Phase 3A : close session command dans orchestrator"
+        result: "Verdict : approved"
+        children: []
+
+      - agent: "kiss-executor"
+        claude_session: "agent-a8b0e67cfa849662b"
+        parent_session: "90601659-132b-4d66-8b12-bc3a1b582c59"
+        timestamp: "2026-04-14T07:51:53Z"
+        task: |
+          Phase 3 steps 3-5 : Créer scripts/sync-sessions.sh (190 lignes, auto-detect
+          slug, rsync incremental, --dry-run, --clean interactif). Documenter dans
+          CLAUDE.md (folder structure + section Session sync).
+        result: |
+          sync-sessions.sh créé et testé (31 sessions, 6 sub-agent dirs, 16 MB en dry-run).
+          CLAUDE.md enrichi avec sync-sessions.sh dans folder structure + section Session sync.
+          Caveat : .gitignore devrait inclure claude-sessions/.
+        children: []
+
+      - agent: "kiss-verificator"
+        claude_session: "agent-a493a5e39daf951fe"
+        parent_session: "90601659-132b-4d66-8b12-bc3a1b582c59"
+        timestamp: "2026-04-14T07:53:37Z"
+        task: |
+          Review Phase 3B : sync-sessions.sh (slug detection, rsync, --dry-run, --clean safety).
+          CLAUDE.md (folder structure, section sync).
+        result: |
+          Verdict : needs-rework. 1 blocking : .gitignore manquait claude-sessions/.
+          2 mineurs : dead code UPDATED_COUNT, CHECKPOINT.md→.yaml dans CLAUDE.md.
+          Fixes appliqués (2 commits : WIP 6627601 + fix e8de052 + orchestrator 86f9f18).
+        children: []
+
+  - phase: "Phase 4 — Élicitation du pourquoi (ajout tardif)"
+    started: "2026-04-14T08:23:49Z"
+    ended: "2026-04-14T08:25:40Z"
+    steps:
+      - agent: "kiss-executor"
+        claude_session: "agent-aa1e03a165a7e98a0"
+        parent_session: "90601659-132b-4d66-8b12-bc3a1b582c59"
+        timestamp: "2026-04-14T08:23:49Z"
+        task: |
+          Ajouter un mécanisme d élicitation du "pourquoi" dans le protocole INIT
+          de kiss-orchestrator : après la question 1, si le pourquoi n est pas clair,
+          proposer des hypothèses. Écrire le résultat dans CHECKPOINT need.why.
+        result: |
+          agents/kiss-orchestrator/agent.md modifié : section "Élicitation du pourquoi"
+          ajoutée après question 1 dans le protocole INIT. Template CHECKPOINT init-need
+          enrichi avec champ why.
+        children: []
+
+      - agent: "kiss-verificator"
+        claude_session: "agent-a884c445f2d04441a"
+        parent_session: "90601659-132b-4d66-8b12-bc3a1b582c59"
+        timestamp: "2026-04-14T08:24:43Z"
+        task: "Review ajout élicitation pourquoi dans orchestrator INIT"
+        result: "Verdict : approved"
+        children: []

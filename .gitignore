@@ -2,5 +2,7 @@ __pycache__/
 *.pyc
 .venv/
 tests/.venv/
-.kiss-claw/sessions
+.kiss-claw/sessions/STATE.md
 .kiss-claw/claude-sessions
+STATE.md
+SCRATCH.md

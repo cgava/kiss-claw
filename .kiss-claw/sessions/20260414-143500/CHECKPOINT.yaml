@@ -1,0 +1,136 @@
+session: "20260414-143500"
+created: "2026-04-14T08:38:56"
+claude_session: "4ac8799f-6fe6-46ef-9e8f-83bdbbb6a148"
+
+need:
+  why: |
+    Dette documentaire — le projet kiss-claw a évolué rapidement (checkpoint,
+    sync-sessions, store.sh enrichi, multi-session) mais la documentation
+    n a pas suivi. Les process ne sont pas évidents pour les utilisateurs
+    ni pour les agents.
+    Catégorie : dette_technique
+  raw: |
+    De nombreuses fonctionnalités ont été ajoutées, l usage de kiss-orchestrator
+    commence à se complexifier (notamment les dernières fonctionnalités, de
+    sauvegardes de CHECKPOINT sans les hooks, ou aller synchroniser les sessions
+    claude sans que ça soit automatique). Générer une documentation en utilisant
+    le pattern Diátaxis, parcourable par les agents via un skill kiss-help.
+  elicited: |
+    Documentation structurée Diátaxis (tutorials, how-to, reference, explanation)
+    dans docs/help/fr/ (i18n-ready). Skill kiss-help pour consultation par les agents.
+    Intégration dans le workflow existant.
+  constraints: |
+    Français uniquement pour cette phase. Structure docs/help/fr/ pour permettre
+    docs/help/en/ plus tard. Pas de refactoring du code. Tout dans le repo.
+
+log:
+  - phase: "Phase 0 — Recherche préliminaire"
+    started: "2026-04-14T08:32:01Z"
+    ended: "2026-04-14T08:34:38Z"
+    steps:
+      - agent: "document-specialist"
+        claude_session: "agent-ae7190ac980a964e3"
+        parent_session: "4ac8799f-6fe6-46ef-9e8f-83bdbbb6a148"
+        timestamp: "2026-04-14T08:32:01Z"
+        task: "Research Diátaxis framework — principes, structure, bonnes pratiques"
+        result: "Recherche complète du framework Diátaxis (4 quadrants)"
+        children: []
+
+      - agent: "Explore"
+        claude_session: "agent-aaf280e762bf7f01f"
+        parent_session: "4ac8799f-6fe6-46ef-9e8f-83bdbbb6a148"
+        timestamp: "2026-04-14T08:32:14Z"
+        task: "Explorer les fonctionnalités kiss-claw pour inventorier ce qui doit être documenté"
+        result: "Inventaire complet des fonctionnalités du projet"
+        children: []
+
+  - phase: "Phase 1 — Documentation Diátaxis"
+    started: "2026-04-14T10:55:43Z"
+    ended: "2026-04-14T11:43:34Z"
+    steps:
+      - agent: "kiss-executor"
+        claude_session: "agent-ad9db5593c3e42351"
+        parent_session: "4ac8799f-6fe6-46ef-9e8f-83bdbbb6a148"
+        timestamp: "2026-04-14T10:55:43Z"
+        task: |
+          Phase 1 — Créer la documentation Diátaxis complète dans docs/help/fr/.
+          Tutorials (1 guide pas à pas), how-to (8 guides pratiques), reference
+          (6 fiches techniques), explanation (5 articles de fond). Index principal
+          + index par section.
+        result: |
+          25 fichiers créés dans docs/help/fr/. Structure complète Diátaxis avec
+          tutorials, how-to, reference, explanation. Tous les index liés.
+        children: []
+
+      - agent: "kiss-verificator"
+        claude_session: "agent-a96205002bd954822"
+        parent_session: "4ac8799f-6fe6-46ef-9e8f-83bdbbb6a148"
+        timestamp: "2026-04-14T11:39:16Z"
+        task: |
+          Review documentation Diátaxis — vérification structure, complétude,
+          cohérence inter-documents, qualité du contenu.
+        result: |
+          Verdict : needs-rework. Issues identifiées sur accents manquants,
+          cohérence cross-references. Review ID : REV-0005.
+        children: []
+
+      - agent: "kiss-executor"
+        claude_session: "agent-a42ccf02e37523ed9"
+        parent_session: "4ac8799f-6fe6-46ef-9e8f-83bdbbb6a148"
+        timestamp: "2026-04-14T11:41:49Z"
+        task: "Fix doc review issues REV-0005 — corrections accents et cross-references"
+        result: "Corrections appliquées sur les fichiers identifiés par REV-0005"
+        children: []
+
+  - phase: "Phase 2 — Skill kiss-help"
+    started: "2026-04-14T12:49:34Z"
+    ended: "2026-04-14T12:51:39Z"
+    steps:
+      - agent: "kiss-executor"
+        claude_session: "agent-a74c5074f7f3432dd"
+        parent_session: "4ac8799f-6fe6-46ef-9e8f-83bdbbb6a148"
+        timestamp: "2026-04-14T12:49:34Z"
+        task: |
+          Phase 2 — Créer le skill /kiss-help : commands/kiss-help.md (définition)
+          + scripts/help.sh (backend avec grep -F pour recherche littérale).
+          Navigation par section, recherche par mot-clé.
+        result: |
+          commands/kiss-help.md et scripts/help.sh créés. Skill fonctionnel :
+          navigation par section, recherche littérale, listing des pages.
+        children: []
+
+      - agent: "kiss-verificator"
+        claude_session: "agent-ad60f05318781c2e2"
+        parent_session: "4ac8799f-6fe6-46ef-9e8f-83bdbbb6a148"
+        timestamp: "2026-04-14T12:50:55Z"
+        task: "Review skill kiss-help — commands/kiss-help.md + scripts/help.sh"
+        result: "Verdict : approved"
+        children: []
+
+  - phase: "Phase 3 — Intégration workflow"
+    started: "2026-04-14T13:20:20Z"
+    ended: "2026-04-14T13:22:47Z"
+    steps:
+      - agent: "kiss-executor"
+        claude_session: "agent-aac9f30300ba4964d"
+        parent_session: "4ac8799f-6fe6-46ef-9e8f-83bdbbb6a148"
+        timestamp: "2026-04-14T13:20:20Z"
+        task: |
+          Phase 3 — Intégration workflow : modifier hooks/agent-suggest.sh pour
+          mentionner /kiss-help. Créer docs/help/fr/how-to/utiliser-kiss-help.md
+          (meta-doc). Valider 6 parcours de navigation.
+        result: |
+          Done: (1) hooks/agent-suggest.sh modifié — ajout mention /kiss-help.
+          (2) docs/help/fr/how-to/utiliser-kiss-help.md créé. Index how-to mis à jour.
+          (3) 6/6 tests parcours validés.
+        children: []
+
+      - agent: "kiss-verificator"
+        claude_session: "agent-a03609836a631d867"
+        parent_session: "4ac8799f-6fe6-46ef-9e8f-83bdbbb6a148"
+        timestamp: "2026-04-14T13:21:34Z"
+        task: "Review Phase 3 — agent-suggest.sh + meta-doc kiss-help + index"
+        result: |
+          Verdict: approved-with-notes. Two minor issues: missing accents in how-to
+          (consistent with corpus), emoji in agent-suggest.sh output. No blocking issues.
+        children: []
