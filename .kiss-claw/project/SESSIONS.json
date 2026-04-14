@@ -75,6 +75,26 @@
         "decisions": ["Écriture directe du CHECKPOINT plutôt que upsert itératif (store.sh ne supporte pas la réécriture complète)", "Mapping des IDs Claude via ls sur ~/.claude/projects/ et cross-référence des .meta.json"],
         "next": ["none"]
       }
+    },
+    {
+      "id": "20260414-213000",
+      "created": "2026-04-14T21:30:00",
+      "status": "done",
+      "title": "Enrichissement CHECKPOINT.yaml — mémoire projet auto-suffisante",
+      "closed": "2026-04-14T22:15:00",
+      "summary": {
+        "need": "Les CHECKPOINT.yaml sont trop compactes (task/result monolignes) pour servir de memoire projet exploitable. Perte du contenu riche des sessions Claude (tableaux, verdicts, decisions argumentees).",
+        "outcome": "Recherche etat de l'art (Reflexion, Retroformer, LangGraph). Format enrichi defini et valide : YAML + blocs Markdown avec 6 champs par step (task, rationale, result, artifacts, decisions, issues). Prototype sur session 223433 : 205 -> 1121 lignes (5.5x). Spec du skill /kiss-checkpoint-enrich ecrite dans docs/SPEC-checkpoint-enrich.md.",
+        "files_changed": [".kiss-claw/sessions/20260413-223433/CHECKPOINT.yaml", "docs/SPEC-checkpoint-enrich.md"],
+        "decisions": ["YAML + Markdown | blocks comme format (meilleur compromis structure/lisibilite LLM, +10-15% vs JSON)", "6 champs par step : task, rationale, result, artifacts, decisions, issues", "Python avec pyyaml via .venv du plugin (pas de fallback si absent)", "Skill en 2 temps : upsert minimal puis enrichissement automatique", "Enrichissement des 4 autres CHECKPOINTs reporte a session suivante"],
+        "next": ["Implementer scripts/checkpoint-enrich.py + commands/kiss-checkpoint-enrich.md", "Modifier les 4 agent.md pour invoquer le skill apres upsert", "Enrichir les 4 CHECKPOINTs restants (082706, 143500, 170500, 180629)"]
+      }
+    },
+    {
+      "id": "20260414-231500",
+      "created": "2026-04-14T23:15:00",
+      "status": "in_progress",
+      "title": ""
     }
   ]
 }

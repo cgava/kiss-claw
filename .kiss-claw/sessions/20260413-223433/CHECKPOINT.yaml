@@ -36,20 +36,114 @@ log:
         parent_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
         timestamp: "2026-04-13T22:03:26Z"
         task: |
-          Step 1.1 — Refactorer resolve() dans store.sh pour supporter
-          3 catégories (agents/, project/, sessions/) avec variables d env.
+          Step 1.1 — Refactorer store.sh:resolve() pour 3 catégories avec variables d'env.
+
+          Le fichier scripts/store.sh contient une fonction resolve() qui mappe des noms de
+          ressources vers des chemins fichiers. Actuellement tout est à plat dans $KC_DIR/.
+
+          Refactorer resolve() et reverse_map() pour utiliser 3 sous-dossiers :
+          - KISS_CLAW_AGENTS_DIR -> $KC_DIR/agents
+          - KISS_CLAW_PROJECT_DIR -> $KC_DIR/project
+          - KISS_CLAW_SESSIONS_DIR -> $KC_DIR/sessions
+          - KISS_CLAW_SESSION -> requis pour ressources session
+
+          Mapping : memory:kiss-* -> agents/, insights/analyzed -> agents/,
+          memory/sessions -> project/, plan/state/reviews/scratch/checkpoint -> sessions/$SESSION/.
+
+          token-stats doit être RETIRÉ. require_session() pour erreur claire si session manquante.
+        rationale: |
+          store.sh est le single point of truth pour le mapping ressource -> fichier. La refonte
+          se concentre principalement sur resolve() + reverse_map(). Les agents ne changent pas
+          (ils utilisent /kiss-store read plan -- le chemin est abstrait). L'executor a couvert
+          les steps 1.1 + 1.2 + 1.4 d'un coup car la résolution session et reverse_map étaient
+          naturellement liés à resolve().
         result: |
-          store.sh refactoré : resolve() supporte les 3 sous-dossiers,
-          KISS_CLAW_SESSION requis pour ressources session-scoped.
-          Commit : 1ea12ce refactor(store): Phase 1
+          store.sh refactoré avec succès :
+          - Added env vars: KISS_CLAW_AGENTS_DIR, KISS_CLAW_PROJECT_DIR, KISS_CLAW_SESSIONS_DIR, KISS_CLAW_SESSION
+          - resolve() routes to agents/, project/, sessions/$SESSION/ subdirectories
+          - reverse_map() takes a category arg and scans all 3 subdirectories
+          - list action scans agents/, project/, and sessions/*/ directories
+          - require_session() helper exits with clear error when KISS_CLAW_SESSION unset
+          - Removed token-stats from resolve/reverse_map
+          - Added sessions (SESSIONS.json) to project category
+          - Tests run: 10 scenarios all passing (write/read/list/exists per category, error cases)
+          - Directory structure verified: agents/, project/, sessions/$SESSION/ created correctly by mkdir -p
+          Commit: 1ea12ce refactor(store): Phase 1
+        artifacts: |
+          ### Task Report (kiss-executor)
+
+          ```
+          === TASK REPORT ===
+          Agent  : kiss-executor
+          Task   : Step 1.1 — Refactor store.sh:resolve() for 3 categories with env vars
+          Done   :
+            - Modified /home/omc/workspace/kiss-claw/scripts/store.sh
+              - Added env vars: KISS_CLAW_AGENTS_DIR, KISS_CLAW_PROJECT_DIR, KISS_CLAW_SESSIONS_DIR, KISS_CLAW_SESSION
+              - resolve() now routes to agents/, project/, sessions/$SESSION/ subdirectories
+              - reverse_map() now takes a category arg and scans all 3 subdirectories
+              - list action scans agents/, project/, and sessions/*/ directories
+              - require_session() helper exits with clear error when KISS_CLAW_SESSION unset
+              - Removed token-stats from resolve/reverse_map
+              - Added sessions (SESSIONS.json) to project category
+            - Tests run: 10 scenarios all passing (write/read/list/exists per category, error cases)
+            - Directory structure verified: agents/, project/, sessions/$SESSION/ created correctly by mkdir -p
+          Caveats:
+            - list output for session resources shows " ($session_name)" suffix
+            - init.sh was NOT touched per instructions
+            - guard.sh file-owner checks may need path updates in a later step
+          ==================
+          ```
+        decisions: |
+          - Covered steps 1.1 + 1.2 + 1.4 in a single pass (resolve + require_session + reverse_map/list
+            were naturally coupled).
+          - Added sessions (SESSIONS.json) to project category ahead of step 1.5.
+          - list output includes "(session_name)" suffix for session resources.
+        issues: |
+          none
         children: []
 
       - agent: "kiss-verificator"
         claude_session: "agent-a9db67f0d2c1b251c"
         parent_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
         timestamp: "2026-04-13T22:06:43Z"
-        task: "Review store.sh refactor step 1.1"
-        result: "REV-0028 : approved"
+        task: |
+          Review store.sh refactor step 1.1. Verify mapping table, token-stats removal,
+          reverse_map consistency, actions integrity, session error handling, set -euo pipefail,
+          CLI interface unchanged.
+        rationale: |
+          Standard review after executor implementation. Systematic verification of each
+          resource mapping against the specification table.
+        result: |
+          REV-0028: approved. All 7 verification points passed. No blocking or minor issues found.
+        artifacts: |
+          ### Verification Results (REV-0028)
+
+          **Mapping table check** -- going through each resource against resolve():
+          - `memory:kiss-*` -> `$AGENTS_DIR/MEMORY_kiss-*.md` (line 29) -- CORRECT
+          - `insights` -> `$AGENTS_DIR/INSIGHTS.md` (line 30) -- CORRECT
+          - `analyzed` -> `$AGENTS_DIR/ANALYZED.md` (line 31) -- CORRECT
+          - `memory` -> `$PROJECT_DIR/MEMORY.md` (line 33) -- CORRECT
+          - `sessions` -> `$PROJECT_DIR/SESSIONS.json` (line 34) -- CORRECT
+          - `plan` -> `$SESSIONS_DIR/$KISS_CLAW_SESSION/PLAN.md` (line 23) -- CORRECT
+          - `state` -> `$SESSIONS_DIR/$KISS_CLAW_SESSION/STATE.md` (line 24) -- CORRECT
+          - `reviews` -> `$SESSIONS_DIR/$KISS_CLAW_SESSION/REVIEWS.md` (line 25) -- CORRECT
+          - `scratch` -> `$SESSIONS_DIR/$KISS_CLAW_SESSION/SCRATCH.md` (line 26) -- CORRECT
+          - `checkpoint` -> `$SESSIONS_DIR/$KISS_CLAW_SESSION/CHECKPOINT.md` (line 27) -- CORRECT
+
+          **All checks passed:**
+          1. **Mapping table** -- all 10 resources resolve to correct paths across 3 tiers.
+          2. **token-stats removed** -- zero matches in entire file.
+          3. **reverse_map() consistency** -- mirrors resolve() correctly for all 3 categories, including .json handling for SESSIONS.json.
+          4. **Actions intact** -- read, write, append, update, exists, list all work with new paths. mkdir -p ensures subdirectories created on write/append.
+          5. **Session error handling** -- require_session() checks KISS_CLAW_SESSION, prints clear stderr message, exits 1. Called for all 5 session-scoped resources.
+          6. **set -euo pipefail** -- present at line 2.
+          7. **CLI interface** -- unchanged store.sh <action> <resource> [content...] signature.
+
+          Minor observation: list action for project directory scans *.md and *.json but the [[ -f "$f" ]] || continue guard handles non-existent globs safely.
+        decisions: |
+          Approved without notes -- no issues found, proceed to next step.
+        issues: |
+          none
         children: []
 
       - agent: "kiss-executor"
@@ -57,19 +151,116 @@ log:
         parent_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
         timestamp: "2026-04-13T22:35:17Z"
         task: |
-          Steps 1.3 + 1.5 : retirer token-stats du resolve/reverse_map
-          (créer ISSUE), ajouter ressource sessions → project/SESSIONS.json.
+          Steps 1.3 + 1.5 combined:
+
+          Step 1.3 -- Retirer token-stats, créer ISSUE:
+          token-stats already removed from store.sh in 1.1. Remaining: create .kiss-claw/project/ISSUES.md
+          with ISSUE-006 (token stats réactivation -- open, low priority, decision points documented).
+
+          Step 1.5 -- Vérifier que la ressource sessions fonctionne:
+          store.sh maps sessions -> $PROJECT_DIR/SESSIONS.json. Verify with write/read/exists tests.
+        rationale: |
+          Steps 1.3 and 1.5 were small residual tasks after the bulk of Phase 1 was done in 1.1.
+          Combined into a single executor delegation for efficiency.
         result: |
-          token-stats retiré, ISSUE créée. SESSIONS.json ajouté au resolve.
-          REV-0029/0030 approved.
+          - Confirmed token-stats absent from scripts/store.sh (resolve + reverse_map)
+          - Created .kiss-claw/project/ directory
+          - Created .kiss-claw/project/ISSUES.md with ISSUE-006
+          - Tested store.sh write sessions '{"sessions":[]}' -> ok
+          - Tested store.sh read sessions -> {"sessions":[]}
+          - Tested store.sh exists sessions -> true
+          - SESSIONS.json correctly written to .kiss-claw/project/SESSIONS.json
+        artifacts: |
+          ### Task Report (kiss-executor)
+
+          ```
+          === TASK REPORT ===
+          Agent  : kiss-executor
+          Task   : Step 1.3 (token-stats removal + ISSUE) and Step 1.5 (sessions resource verification)
+          Done   :
+            - Confirmed token-stats absent from scripts/store.sh (resolve + reverse_map)
+            - Created .kiss-claw/project/ directory
+            - Created .kiss-claw/project/ISSUES.md with ISSUE-006
+            - Tested `store.sh write sessions '{"sessions":[]}'` -> ok
+            - Tested `store.sh read sessions` -> {"sessions":[]}
+            - Tested `store.sh exists sessions` -> true
+            - SESSIONS.json correctly written to .kiss-claw/project/SESSIONS.json
+          Caveats:
+            - The old .kiss-claw/ISSUES.md exists at root level (from before the refonte). May want to migrate or remove it later.
+            - The old .kiss-claw/TOKEN_STATS.md still exists on disk -- not cleaned up (out of scope for this task).
+          ==================
+          ```
+        decisions: |
+          - Created ISSUES.md via direct file write (not store.sh) since issues is not yet a mapped resource.
+          - Left old root-level ISSUES.md and TOKEN_STATS.md for later cleanup/migration.
+        issues: |
+          Old .kiss-claw/ISSUES.md at root level is a duplicate. Old TOKEN_STATS.md still on disk.
+          Both are out of scope, flagged for later migration.
         children: []
 
       - agent: "kiss-verificator"
         claude_session: "agent-a9a4bc9d1485f5b87"
         parent_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
         timestamp: "2026-04-13T22:36:11Z"
-        task: "Review steps 1.3+1.5 and Phase 1 completion"
-        result: "Approved — Phase 1 complete"
+        task: |
+          Review steps 1.3+1.5 AND full Phase 1 store.sh coherence audit.
+          Verify ISSUES.md format, SESSIONS.json validity, token-stats absence,
+          resolve/reverse_map parity across all 10 resources, require_session coverage,
+          action argument handling, sed injection escaping, list directory scanning.
+        rationale: |
+          Final Phase 1 review combining the specific step review with a full store.sh audit.
+        result: |
+          REV-0029 (steps 1.3+1.5): approved.
+          REV-0030 (Phase 1 global store.sh coherence): approved.
+          Phase 1 complete.
+        artifacts: |
+          ### REV-0029 -- Steps 1.3 + 1.5
+
+          **Verdict: approved**
+
+          What was checked:
+          - `.kiss-claw/project/ISSUES.md` -- well-formatted, ISSUE-006 has status/priority/date/decision points
+          - `.kiss-claw/project/SESSIONS.json` -- valid JSON (`{"sessions":[]}`)
+          - `token-stats` grep on store.sh -- zero matches, fully removed
+          - `sessions` resource wired in resolve(), reverse_map(), and list glob patterns
+
+          ### REV-0030 -- Phase 1 Global Store.sh Coherence
+
+          **Verdict: approved**
+
+          Full 172-line audit of `scripts/store.sh`. Key findings:
+
+          | Check | Result |
+          |---|---|
+          | resolve() -> reverse_map() parity | All 10 resources matched, zero orphans |
+          | require_session() coverage | Called for exactly 5 session-scoped resources |
+          | Action argument handling | Consistent across all 6 actions |
+          | Sed injection escaping (update) | Both field and value properly escaped |
+          | List directory scanning | All 3 dirs covered; unknown files silently skipped |
+          | Edge cases (missing files, stdin vs inline) | Handled correctly |
+
+          Zero blocking issues. Zero minor issues. Phase 1 is complete.
+
+          ---
+
+          **Full coherence analysis:**
+
+          resolve() resources:
+          - Session-scoped: plan->PLAN.md, state->STATE.md, reviews->REVIEWS.md, scratch->SCRATCH.md, checkpoint->CHECKPOINT.md
+          - Agent-scoped: memory:kiss-*->MEMORY_kiss-*.md, insights->INSIGHTS.md, analyzed->ANALYZED.md
+          - Project-scoped: memory->MEMORY.md, sessions->SESSIONS.json
+
+          reverse_map() mappings:
+          - agents: MEMORY_kiss-*->memory:kiss-*, INSIGHTS->insights, ANALYZED->analyzed
+          - project: MEMORY->memory, SESSIONS->sessions
+          - sessions: PLAN->plan, STATE->state, REVIEWS->reviews, SCRATCH->scratch, CHECKPOINT->checkpoint
+
+          All match. ISSUES.md in project dir is silently skipped by list (correct: not a mapped resource).
+          list does not scan for .json in agents or sessions dirs (correct: SESSIONS.json is the only JSON resource and it's project-scoped).
+        decisions: |
+          Phase 1 approved in full. Proceed to Phase 2.
+        issues: |
+          none
         children: []
 
   - phase: "Phase 2 — Init : init.sh interactif"
@@ -81,26 +272,171 @@ log:
         parent_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
         timestamp: "2026-04-13T22:38:42Z"
         task: |
-          Phase 2 — Refactorer init.sh : dialogue interactif pour chaque
-          sous-dossier, support symlinks, copie templates, init SESSIONS.json.
+          Phase 2 — Refactorer init.sh : dialogue interactif (steps 2.1 à 2.5).
+
+          2.1: Dialogue interactif via ask_subdir_path() pour chaque sous-dossier (agents, project,
+          sessions) avec 3 choix (défaut, autre chemin, symlink). Non-tty silencieux.
+          2.2: create_subdir() handles mkdir -p ou ln -s selon choix.
+          2.3: Copier templates via store.sh write (memory, memory:kiss-*) avec skip-if-exists.
+          2.4: Initialiser SESSIONS.json avec {"sessions":[]}.
+          2.5: Mettre à jour .gitignore.
+
+          Contraintes: mode non-interactif si stdin pas terminal, exports KISS_CLAW_*_DIR pour store.sh,
+          conserver --status et --help, set -euo pipefail.
+        rationale: |
+          init.sh needs a complete rewrite to support the 3-folder structure with user choice for
+          each subdirectory. The interactive dialogue was chosen over a config file for simplicity
+          (zero dependency constraint). Non-tty fallback ensures CI/pipe compatibility.
         result: |
-          init.sh refactoré avec dialogue interactif. Commits 39bcac2 + 4ca5433.
+          scripts/init.sh rewritten:
+          - 2.1: Interactive dialogue via ask_subdir_path() with 3 choices. Non-interactive silently uses defaults.
+          - 2.2: create_subdir() handles mkdir -p or ln -s based on user choice
+          - 2.3: Templates copied via store.sh write with skip-if-exists logic
+          - 2.4: SESSIONS.json initialized with {"sessions":[]}
+          - 2.5: .gitignore updated with KC_DIR
+          - --status redesigned: shows sub-directories with symlink detection
+          - --help updated with env var documentation
+          - Exports KISS_CLAW_AGENTS_DIR, KISS_CLAW_PROJECT_DIR, KISS_CLAW_SESSIONS_DIR for store.sh
+          - Tested: non-interactive init, --status, --help, idempotent re-run, syntax check -- all pass
+          Commits: 39bcac2 + 4ca5433
+        artifacts: |
+          ### Task Report (kiss-executor)
+
+          ```
+          === TASK REPORT ===
+          Agent  : kiss-executor
+          Task   : Refactorer scripts/init.sh -- init interactif (steps 2.1 a 2.5)
+          Done   :
+            - /home/omc/workspace/kiss-claw/scripts/init.sh rewritten
+            - 2.1: Interactive dialogue via ask_subdir_path() for agents/project/sessions with 3 choices
+            - 2.2: create_subdir() handles mkdir -p or ln -s based on user choice
+            - 2.3: Templates copied via store.sh write (memory, memory:kiss-*) with skip-if-exists
+            - 2.4: SESSIONS.json initialized with {"sessions":[]} via store.sh write sessions
+            - 2.5: .gitignore updated with KC_DIR (existing logic preserved)
+            - --status redesigned: shows sub-directories (with symlink detection)
+            - --help updated with env var documentation
+            - Exports KISS_CLAW_AGENTS_DIR, KISS_CLAW_PROJECT_DIR, KISS_CLAW_SESSIONS_DIR for store.sh
+            - Tested: non-interactive init, --status, --help, idempotent re-run, syntax check
+          Caveats:
+            - Interactive mode (tty) cannot be tested in CI/piped context by design
+            - The "Done. Structure:" summary always shows "-> path" even for non-symlink dirs (cosmetic)
+          ==================
+          ```
+
+          ### Implementation note
+          The symlink test via piped printf input correctly falls through to defaults because
+          `[[ ! -t 0 ]]` detects piped input and skips the prompt -- this is by design per spec.
+        decisions: |
+          - Used `[[ ! -t 0 ]]` for tty detection (standard bash approach).
+          - Exports env vars before any store.sh calls.
+          - Template extraction uses sed ranges with `---` delimiters between agent sections.
+        issues: |
+          - Interactive mode cannot be tested in CI (by design).
+          - "Done. Structure:" summary cosmetically shows "-> path" even for non-symlink dirs.
         children: []
 
       - agent: "kiss-verificator"
         claude_session: "agent-a050a32b961d5a377"
         parent_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
         timestamp: "2026-04-13T22:40:34Z"
-        task: "Review init.sh Phase 2 refactor"
-        result: "REV-0027 : approved-with-notes (symlink guard, grep -qF, template separator)"
+        task: |
+          Review init.sh Phase 2 refactor. Verify ask_subdir_path logic (3 choices + non-tty),
+          exports before store.sh calls, template copying with sed extraction, SESSIONS.json init,
+          --status display, coherence with store.sh, robustness (spaces, symlinks, re-init).
+        rationale: |
+          Thorough review of a complete rewrite. Focus on robustness edge cases since init.sh
+          creates the foundational directory structure.
+        result: |
+          REV-0027: approved-with-notes. 3 minor issues found:
+          1. Re-init symlink safety: create_subdir() only checks for symlinks, not existing dirs
+          2. Trailing --- in template: last agent section relies on EOF fallthrough
+          3. grep .gitignore: dot in .kiss-claw is regex wildcard
+        artifacts: |
+          ### REV-0027 — approved-with-notes
+
+          **Summary:**
+          Reviewed scripts/init.sh (317 lines) and verified coherence with scripts/store.sh and templates/.
+          The interactive dialogue, non-tty fallback, export ordering, template copying, SESSIONS.json init,
+          --status display, and .gitignore handling are all functionally correct.
+
+          **Key findings from code review:**
+
+          1. **ask_subdir_path logic (lines 27-75):** Correct. Choice 1 uses default, choice 2 reads custom
+             path with empty fallback, choice 3 reads symlink target with empty fallback. Non-tty detection
+             at line 35 returns early with defaults. Invalid choice falls through to default.
+
+          2. **Exports before store.sh calls (lines 219-222):** The three exports are done before any $STORE
+             calls which start at line 237. Correct.
+
+          3. **Template copying (lines 236-257):** MEMORY.md template piped via store.sh write. Agent memory
+             files extracted with sed -n from the combined template.
+
+          4. **SESSIONS.json (lines 259-265):** Initialized with {"sessions":[]} piped to store.sh write. Correct.
+
+          5. **Coherence with store.sh:** Exports match store.sh vars. Resource names all match resolve().
+
+          **Issues:**
+          - [minor] create_subdir only removes existing symlinks before ln -s (line 91); if path is an
+            existing real directory (re-init scenario), symlink will be created inside it. Add error check.
+          - [minor] sed extraction of last agent template (kiss-improver) relies on no trailing --- in
+            template file, causing range to match to EOF. Works by coincidence. Add trailing ---.
+          - [minor] .gitignore check uses grep -q "^${KC_DIR}$" where . in .kiss-claw is regex wildcard.
+            Use grep -qF.
+        decisions: |
+          Approved with notes -- 3 minor issues flagged for fix pass before committing.
+          Workflow protocol: commit WIP first, then rework, then commit fix.
+        issues: |
+          3 minor robustness issues (re-init symlink, sed EOF, grep regex). Non-blocking for first-run.
         children: []
 
       - agent: "kiss-executor"
         claude_session: "agent-a1481a46a8b83ee8d"
         parent_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
         timestamp: "2026-04-13T22:45:59Z"
-        task: "Fix 3 minor issues from REV-0027"
-        result: "3 fixes appliqués. Commit fd0151c."
+        task: |
+          Fix 3 minor issues from REV-0027 on scripts/init.sh and templates:
+
+          Fix 1 — Re-init symlink safety in create_subdir(): if $dir_path exists as real directory
+          (not symlink), display error and exit instead of silently nesting symlink inside it.
+
+          Fix 2 — Trailing --- in template: append --- at end of templates/MEMORY_agents.md.template
+          so sed extraction has explicit end marker.
+
+          Fix 3 — grep regex in .gitignore: replace grep -q "^${KC_DIR}$" with grep -qF "$KC_DIR"
+          to avoid . being treated as regex wildcard.
+        rationale: |
+          Targeted fixes for the 3 robustness issues flagged by verificator. Each fix is minimal
+          and surgical -- no refactoring, just hardening.
+        result: |
+          All 3 fixes applied and verified:
+          - scripts/init.sh: real-directory guard before ln -s in create_subdir()
+          - scripts/init.sh: grep -qF replaces grep -q with regex
+          - templates/MEMORY_agents.md.template: trailing --- appended
+          Commit: fd0151c
+        artifacts: |
+          ### Task Report (kiss-executor)
+
+          ```
+          === TASK REPORT ===
+          Agent  : kiss-executor
+          Task   : REV-0027 — 3 minor fixes in scripts/init.sh and templates/MEMORY_agents.md.template
+          Done   :
+            - scripts/init.sh (Fix 1): added real-directory guard before `ln -s` in `create_subdir()`
+              — exits with clear error message instead of silently nesting symlink inside existing dir
+            - scripts/init.sh (Fix 3): replaced `grep -q "^${KC_DIR}$"` with `grep -qF "$KC_DIR"`
+              — eliminates regex wildcard on literal dot in .kiss-claw
+            - templates/MEMORY_agents.md.template (Fix 2): appended trailing `---` after kiss-improver
+              section — sed extraction range now has explicit end
+          Caveats:
+            - Fix 3 trades anchored matching (^...$) for substring matching (-F). Correct for typical
+              case (.kiss-claw is unique enough), but verificator may want to confirm no edge case.
+          ==================
+          ```
+        decisions: |
+          - Used error-and-exit instead of rm -rf for existing directory on re-init (safer).
+          - Chose grep -qF over escaped regex (simpler, sufficient for typical paths).
+        issues: |
+          Fix 3 trades anchored regex for substring match -- acceptable trade-off for .kiss-claw uniqueness.
         children: []
 
   - phase: "Phase 3 — Session management dans kiss-orchestrator"
@@ -112,20 +448,116 @@ log:
         parent_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
         timestamp: "2026-04-13T22:49:47Z"
         task: |
-          Phase 3 — Ajouter commandes list, resume, new session dans
-          kiss-orchestrator. Propager KISS_CLAW_SESSION aux agents délégués.
-          Mettre à jour SESSIONS.json à chaque création/clôture.
+          Phase 3 — Session management dans kiss-orchestrator (steps 3.1 à 3.5).
+
+          Modify agents/kiss-orchestrator/agent.md to add:
+          3.1: list command -- read SESSIONS.json, display session table or empty message.
+          3.2: resume <id> command -- check directory, set KISS_CLAW_SESSION, load state/plan, print brief.
+          3.3: New session flow (no argument) -- generate YYYYMMDD-HHmmss id, create session dir via store.sh,
+               register in SESSIONS.json, run INIT protocol.
+          3.4: Session propagation (CRITICAL) -- export KISS_CLAW_SESSION in all delegations.
+          3.5: SESSIONS.json management -- creation adds entry, close updates status, no jq dependency.
+
+          Also: add Session line to session brief, add Bash to tools frontmatter, restructure startup
+          protocol for 3-way dispatch (list/resume/new).
+        rationale: |
+          kiss-orchestrator is the session lifecycle owner. The agent.md documents behavioral instructions
+          (not executable code). Session propagation is critical because all delegated agents need
+          KISS_CLAW_SESSION to access session-scoped resources via store.sh.
         result: |
-          Orchestrator enrichi avec session management complet.
-          Commits c927ad6 + cc5cece.
+          agents/kiss-orchestrator/agent.md enriched with session management:
+          - Session commands section (list/resume)
+          - New session flow with YYYYMMDD-HHmmss naming
+          - Session propagation (CRITICAL) in delegation rules
+          - SESSIONS.json management (JSON manipulation without jq)
+          - Session line in brief format
+          - Bash added to tools frontmatter
+          Commits: c927ad6 + cc5cece
+        artifacts: |
+          ### Task Report (kiss-executor)
+
+          ```
+          === TASK REPORT ===
+          Agent  : kiss-executor
+          Task   : Add session management to agents/kiss-orchestrator/agent.md (steps 3.1-3.5)
+          Done   :
+            - Modified /home/omc/workspace/kiss-claw/agents/kiss-orchestrator/agent.md
+              - 3.1: Added "Session commands" section with list command
+              - 3.2: Added resume <id> command
+              - 3.3: Added "No session argument" flow (YYYYMMDD-HHmmss, store.sh, SESSIONS.json, INIT)
+              - 3.4: Added "Session propagation (CRITICAL)" subsection under Delegation rules
+              - 3.5: Added "SESSIONS.json management" section
+            - Added Session : <id> line to session brief format
+            - Added Bash to tools list in frontmatter
+            - Restructured Startup protocol for 3-way dispatch (list/resume/new)
+            - Updated INIT section to require active session
+          Caveats:
+            - list command table format uses pipe-separated columns
+            - Startup protocol now has 3-way branch -- verify no existing behavior lost
+            - Bash added to tools frontmatter for store.sh invocations
+          ==================
+          ```
+        decisions: |
+          - Agent manipulates SESSIONS.json directly (no jq) to maintain zero-dependency constraint.
+          - Bash tool added to frontmatter (necessary for store.sh invocations).
+          - INIT requires active session (set before INIT runs in new-session flow).
+        issues: |
+          none
         children: []
 
       - agent: "kiss-verificator"
         claude_session: "agent-a6457fc7443212b0b"
         parent_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
         timestamp: "2026-04-13T22:51:17Z"
-        task: "Review Phase 3 orchestrator session management"
-        result: "REV-0027 : approved-with-notes, fixes appliqués (f21f56e)"
+        task: |
+          Review Phase 3 orchestrator session management. Verify: startup protocol covers 3 cases
+          (list/resume/new), INIT protocol preserved, session propagation in delegation rules,
+          SESSIONS.json format coherent, session brief has Session line, store.sh commands valid,
+          existing behaviors (step commands, dry-run, token budget) not broken.
+        rationale: |
+          kiss-orchestrator is the central coordinator -- changes to its agent.md affect the
+          entire workflow. Must verify no existing behavior was lost.
+        result: |
+          REV-0027: approved-with-notes, fixes applied (commit f21f56e).
+          2 minor issues flagged (raw path in docs, empty state bootstrap).
+        artifacts: |
+          ### REV-0027 — approved-with-notes
+
+          **Systematic verification:**
+
+          1. **Startup protocol covers 3 cases (list/resume/new session):**
+             Lines 128-137 explicitly branch on list, resume <id>, and no-session-argument. All covered.
+
+          2. **INIT protocol (3 questions) not broken:**
+             Lines 153-165: INIT preserved with all 3 questions, plan/state generation, memory write.
+             Added requirement: KISS_CLAW_SESSION must be set before INIT runs (correct).
+
+          3. **Session propagation in delegation rules:**
+             Lines 173-186: Dedicated "Session propagation (CRITICAL)" subsection. Documents the
+             export KISS_CLAW_SESSION=<id> requirement and explains why.
+
+          4. **SESSIONS.json format:**
+             Lines 104-115: Coherent with id, created, status, title fields.
+
+          5. **Session brief contains Session line:**
+             Lines 139-151: Session : <KISS_CLAW_SESSION id> confirmed.
+
+          6. **Coherence with store.sh:**
+             All store.sh commands referenced (read sessions, write sessions, write state, read state,
+             read plan, read insights, exists plan) are valid.
+
+          7. **Existing behaviors preserved:**
+             Step commands (lines 188-196), dry-run (262-266), token budget (268-276),
+             context optimisation (205-207): all intact.
+
+          **Issues:**
+          - [minor] Raw path "project/SESSIONS.json" mentioned alongside store.sh command in list section
+          - [minor] New-session step 3 writes state before INIT to bootstrap directory via mkdir -p,
+            but lacks explicit comment that this is a placeholder write
+        decisions: |
+          Approved with notes. Minor issues are documentation clarity, not functional bugs.
+        issues: |
+          2 minor documentation issues (raw path reference, implicit bootstrap write).
         children: []
 
   - phase: "Phase 4 — Adaptation agents + hooks"
@@ -137,18 +569,119 @@ log:
         parent_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
         timestamp: "2026-04-13T22:54:38Z"
         task: |
-          Phase 4 — Adapter guard.sh (chemins protégés), session-end.sh
-          (chemins checkpoint), 4 agent.md, hooks.json à la nouvelle structure.
+          Phase 4 — Adapter guard.sh, session-end.sh, hooks.json, et 3 agent.md (executor,
+          verificator, improver) à la nouvelle structure multi-session.
+
+          4.1: guard.sh -- protect files in 3 subdirectories (agents/MEMORY_kiss-*.md, INSIGHTS.md,
+          ANALYZED.md; project/MEMORY.md; sessions/*/PLAN.md, STATE.md, CHECKPOINT.md). Use same
+          env vars as store.sh. Pattern matching for any session subdirectory.
+
+          4.2: session-end.sh -- add KISS_CLAW_SESSION gate (early exit if unset), export the variable,
+          update STATE_FILE path to use sessions dir.
+
+          4.3: Agents x3 -- add "Session context" section documenting KISS_CLAW_SESSION requirement
+          and resource scoping (session vs agent vs project). No logic changes.
+
+          4.4: hooks.json -- SessionStart mkdir creates all 3 subdirectories using env vars with defaults.
+        rationale: |
+          After store.sh (Phase 1), init.sh (Phase 2), and orchestrator (Phase 3), the remaining
+          infrastructure (hooks and agent docs) needs alignment with the new 3-folder structure.
+          guard.sh is the most critical -- it enforces file protection.
         result: |
-          Hooks et agents adaptés. Commits 0845e36 + 96da2ee.
+          All 6 files modified:
+          - hooks/guard.sh: rewritten for 3 subdirectories with env vars
+          - hooks/session-end.sh: KISS_CLAW_SESSION gate + session path
+          - hooks/hooks.json: mkdir creates 3 subdirs
+          - 3 agent.md files: Session context documentation added
+          - All syntax validated (bash -n, JSON parse)
+          Commits: 0845e36 + 96da2ee
+        artifacts: |
+          ### Task Report (kiss-executor)
+
+          ```
+          === TASK REPORT ===
+          Agent  : kiss-executor
+          Task   : Phase 4 — Adapt agents + hooks for multi-session persistence (steps 4.1-4.4)
+          Done   :
+            - hooks/guard.sh — rewritten for 3 subdirectories with env vars. Separate check functions
+              for direct writes and bash redirects.
+            - hooks/session-end.sh — KISS_CLAW_SESSION gate (early exit if unset), exported variable,
+              STATE_FILE path uses sessions dir.
+            - hooks/hooks.json — SessionStart mkdir creates all 3 subdirs using env vars with defaults.
+            - agents/kiss-executor/agent.md — "Session context" section added
+            - agents/kiss-verificator/agent.md — "Session context" section added
+            - agents/kiss-improver/agent.md — "Session context" section added
+            - All syntax validated: bash -n on .sh files, JSON parse on hooks.json
+          Caveats:
+            - guard.sh string matching may miss unusual paths (e.g., absolute paths outside project)
+            - REVIEWS.md and SCRATCH.md not in PROTECTED array (not explicitly requested)
+            - TOKEN_STATS.md no longer protected (removed from schema)
+          ==================
+          ```
+        decisions: |
+          - guard.sh uses separate check functions for Write/Edit vs Bash redirect patterns.
+          - REVIEWS.md not protected (not explicitly requested in spec). Flagged for verificator.
+          - kiss-improver agent.md still references token-stats (pre-existing, not introduced here).
+        issues: |
+          REVIEWS.md and SCRATCH.md unprotected in guard.sh -- flagged for verificator review.
         children: []
 
       - agent: "kiss-verificator"
         claude_session: "agent-a73adbb8b1607bed8"
         parent_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
         timestamp: "2026-04-13T22:56:40Z"
-        task: "Review Phase 4 agents + hooks adaptation"
-        result: "Approved-with-notes, fixes appliqués (acfd93b)"
+        task: |
+          Review Phase 4 agents + hooks adaptation. Verify:
+          1. guard.sh covers all 3 subdirectories with correct protected files
+          2. session-end.sh gates on KISS_CLAW_SESSION, paths correct
+          3. hooks.json mkdir creates 3 subdirs with correct env vars
+          4. 3 agent.md files document session context correctly
+          5. Env var consistency across all files matches store.sh
+          Question ouverte: should REVIEWS.md be protected?
+        rationale: |
+          guard.sh is security-critical -- it enforces who can write what. Must verify the
+          patterns cover all protected files in the new 3-folder layout.
+        result: |
+          REV-0027: approved-with-notes. 3 minor issues:
+          1. REVIEWS.md not protected in guard.sh (should be, owned by verificator)
+          2. SCRATCH.md also unprotected (lower priority)
+          3. kiss-improver references token-stats (pre-existing)
+          Fixes applied (commit acfd93b).
+        artifacts: |
+          ### REV-0027 — approved-with-notes
+
+          **guard.sh analysis:**
+          - Agents dir: MEMORY_kiss-*.md (lines 30-36), INSIGHTS.md (39-44), ANALYZED.md (47-52) -- all covered
+          - Project dir: MEMORY.md (56-61) -- covered
+          - Sessions dir: PLAN.md, STATE.md, CHECKPOINT.md (65-74) -- covered
+          - store.sh whitelist: line 117-119 -- present and correct
+          - Env vars: KISS_CLAW_DIR, KISS_CLAW_AGENTS_DIR, KISS_CLAW_PROJECT_DIR, KISS_CLAW_SESSIONS_DIR
+            match store.sh (lines 6-9 of store.sh, lines 12-15 of guard.sh)
+
+          **session-end.sh analysis:**
+          - Line 17: gates on KISS_CLAW_SESSION -- correct, early exit if absent
+          - Line 23: exports KISS_CLAW_SESSION
+          - Line 30: store.sh read state -- resolves to session path, correct
+          - Line 68: store.sh write checkpoint -- correct
+          - Line 78-84: state update via store.sh -- correct
+
+          **hooks.json analysis:**
+          - Line 9: mkdir creates all 3 subdirs with correct fallbacks
+
+          **Agent docs (x3):**
+          All three have "Session context" section. KISS_CLAW_SESSION requirement documented.
+          Distinction session/agent/project scopes documented. No logic changes.
+
+          **Issues:**
+          - [minor] REVIEWS.md NOT protected in guard.sh -- owned by verificator, should be protected
+          - [minor] SCRATCH.md similarly unprotected -- lower priority
+          - [minor] kiss-improver references token-stats (pre-existing, not introduced here)
+        decisions: |
+          Added REVIEWS.md to guard.sh protection (fix commit acfd93b). SCRATCH.md left
+          unprotected (low priority). token-stats in improver is a tracked pre-existing issue.
+        issues: |
+          REVIEWS.md protection gap fixed. SCRATCH.md remains unprotected (low priority).
+          token-stats reference in kiss-improver is pre-existing.
         children: []
 
   - phase: "Phase 5 — Tests + documentation"
@@ -159,27 +692,182 @@ log:
         claude_session: "agent-a52799b81f74f78d1"
         parent_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
         timestamp: "2026-04-13T23:01:01Z"
-        task: "Phase 5.1-5.2 — Adapter test-store.sh et test-e2e.sh"
-        result: "Tests adaptés à la nouvelle structure 3-tier + multi-session."
+        task: |
+          Phase 5.1-5.2 — Adapter les 3 suites de tests à la nouvelle structure 3-tier + multi-session.
+
+          test-store.sh: Export KISS_CLAW_SESSION for session-scoped resources, create agents/project/sessions
+          structure, add file location checks, add session requirement error tests, remove token-stats,
+          update all path assertions.
+
+          test-e2e.sh: Export KISS_CLAW_SESSION, verify init.sh creates 3 subdirs, verify MEMORY locations,
+          adapt guard paths, remove token-stats, add path verification.
+
+          test-mock-store.sh: Export KISS_CLAW_SESSION, remove token-stats from known resources, adapt
+          memory:orchestrator to memory:kiss-orchestrator, add require_session/is_session_resource.
+        rationale: |
+          Tests must be updated to match the new structure before documentation (which references
+          test results). Two executors ran in parallel: one for tests, one for docs.
+        result: |
+          All 3 test suites adapted and passing:
+          - test-store.sh: 61 tests, all pass
+          - test-e2e.sh: 41 tests, all pass
+          - test-mock-store.sh: 31 tests, all pass
+          Total: 133 tests passing.
+        artifacts: |
+          ### Task Report (kiss-executor)
+
+          ```
+          === TASK REPORT ===
+          Agent  : kiss-executor
+          Task   : Adapt tests (steps 5.1 + 5.2 + 5.2bis) for multi-session persistence refactoring
+          Done   :
+            - Modified tests/test-store.sh (61 tests, all pass)
+              - Exports KISS_CLAW_SESSION + all subdir env vars
+              - Creates agents/, project/, sessions/$SESSION/ structure
+              - Added "file location checks" section verifying files land in correct subdirs
+              - Added "session requirement" section: 5 session resources fail without KISS_CLAW_SESSION,
+                4 non-session resources succeed without it
+              - Removed token-stats from resource resolution loop
+              - All path assertions updated
+            - Modified tests/test-e2e.sh (41 tests, all pass)
+              - Exports KISS_CLAW_SESSION + all subdir env vars
+              - Verifies init.sh creates 3 subdirs (agents/, project/, sessions/)
+              - Verifies MEMORY.md in project/, agent memories in agents/
+              - Guard tests use full subdir paths
+              - Removed token-stats Phase 5 tests
+              - Added path verification assertions for each phase
+            - Modified tests/test-mock-store.sh (31 tests, all pass)
+              - Exports KISS_CLAW_SESSION
+              - Mock store updated: token-stats removed, memory:kiss-* pattern
+              - Mock implements require_session() and is_session_resource()
+              - Added session requirement tests
+              - memory:orchestrator changed to memory:kiss-orchestrator
+            - Ran all 3 tests: 61 + 41 + 31 = 133 PASS, 0 FAIL
+          Caveats: none
+          ==================
+          ```
+
+          ### Implementation note
+          The subshell approach for session requirement tests had a counter propagation issue
+          (PASS/FAIL counters don't propagate back). Fixed by avoiding subshells.
+        decisions: |
+          - Ran tests in parallel with docs executor (Phase 5 split into two parallel streams).
+          - Fixed subshell counter propagation issue in session requirement tests.
+        issues: |
+          none
         children: []
 
       - agent: "kiss-executor"
         claude_session: "agent-a96d14435cd7da357"
         parent_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
         timestamp: "2026-04-13T23:01:12Z"
-        task: "Phase 5.3-5.4 — Mettre à jour CLAUDE.md, README, commands/kiss-store.md"
-        result: "Documentation mise à jour. Commits 514e8e4 + b82807b."
+        task: |
+          Phase 5.3-5.4 — Mettre à jour la documentation pour la nouvelle structure multi-session.
+
+          5.3: CLAUDE.md, README.md, README-fr.md -- update folder structure (3 subdirs), document
+          new env vars, mention multi-session support, remove TOKEN_STATS.md references, update
+          protected files section.
+
+          5.4: commands/kiss-store.md -- reorganize resources into 3 categories (session/agent/project
+          scoped), remove token-stats, add sessions resource, update examples.
+        rationale: |
+          Documentation must reflect the new structure. Ran in parallel with test updates
+          since they are independent workstreams.
+        result: |
+          4 documentation files updated:
+          - CLAUDE.md: folder structure, multi-session, env vars
+          - README.md: v7 section, 3-folder layout, env vars table, multi-session section
+          - README-fr.md: same changes in French
+          - commands/kiss-store.md: 3 categories, sessions resource, examples
+          Commits: 514e8e4 + b82807b
+        artifacts: |
+          ### Task Report (kiss-executor)
+
+          ```
+          === TASK REPORT ===
+          Agent  : kiss-executor
+          Task   : Update documentation (steps 5.3 + 5.4) for multi-session persistence refactor
+          Done   :
+            - CLAUDE.md — updated folder structure (3 subdirs), added multi-session + env vars conventions,
+              removed TOKEN_STATS.md references
+            - README.md — added v7 section, updated project files tree with 3-folder layout, added env vars
+              table, updated protected files table with scope column, replaced token tracking with
+              multi-session section, removed /tokens command
+            - README-fr.md — mirrored all README.md changes in French, added v7/v6/v5 collapsible sections,
+              added env vars table, replaced token tracking with multi-session section
+            - commands/kiss-store.md — reorganized resources into 3 categories (session/agent/project scoped),
+              removed token-stats, added sessions resource, updated examples
+          Caveats:
+            - Agent files still reference token-stats (out of scope per task instructions)
+            - docs/PROPOSAL-persistence-skills.md also has stale token-stats references (out of scope)
+          ==================
+          ```
+        decisions: |
+          - Documented ISSUES.md in folder structure even though it's not a mapped store.sh resource.
+          - Left agent file token-stats references untouched (out of scope per spec).
+        issues: |
+          Agent files and proposal doc still reference token-stats (out of scope for this step).
         children: []
 
       - agent: "kiss-verificator"
         claude_session: "agent-a3dfe3c2d6d191413"
         parent_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
         timestamp: "2026-04-13T23:05:08Z"
-        task: "Review Phase 5 tests + docs"
-        result: "Needs-rework (phantom issues resource, stale backup ref). Fixes appliqués (da454c0 + f4370bc)."
+        task: |
+          Review Phase 5 tests + docs. Execute all 3 test suites. Verify kiss-store.md categories,
+          CLAUDE.md coherence with store.sh implementation, README env vars match, global resource
+          name consistency between docs and store.sh:resolve().
+        rationale: |
+          Combined review of two parallel executor outputs. Must cross-check documentation
+          against actual implementation to catch phantom resources.
+        result: |
+          REV-0027: needs-rework. 2 blocking issues found:
+          1. `issues` phantom resource in docs (kiss-store.md, CLAUDE.md, both READMEs)
+          2. `backup` stale action reference in CLAUDE.md
+          Fixes applied (commits da454c0 + f4370bc).
+        artifacts: |
+          ### REV-0027 — needs-rework
+
+          **Test execution:** All 3 suites pass (61 + 41 + 31 = 133 tests).
+
+          **Critical finding: phantom `issues` resource**
+
+          store.sh resolve() resources:
+          - Session: plan, state, reviews, scratch, checkpoint
+          - Agent: memory:kiss-*, insights, analyzed
+          - Project: memory, sessions
+
+          kiss-store.md (line 45): Project: memory **issues** sessions
+
+          `issues` is documented in kiss-store.md, CLAUDE.md, README.md, and README-fr.md, but store.sh
+          has NO `issues` case in resolve(). Any call to `/kiss-store read issues` would fail with
+          "unknown resource".
+
+          **Critical finding: stale `backup` action**
+
+          CLAUDE.md line 17 mentions `backup` as a store.sh action (read/write/list/backup) but
+          store.sh has no backup action. The usage line says read|write|append|update|exists|list.
+          Leftover from a previous version.
+
+          **Minor: `list sessions` filtering illusion**
+
+          list sessions documented as specific command but list ignores the second argument -- it dumps
+          all resources. Behavior works but docs imply filtering that doesn't exist.
+
+          **Issues:**
+          - [blocking] `issues` phantom resource: documented in 4 files but doesn't exist in store.sh.
+            Either add to store.sh or remove from all docs.
+          - [blocking] `backup` stale reference in CLAUDE.md.
+          - [minor] `list sessions` docs imply filtering that doesn't exist.
+        decisions: |
+          Verdict: needs-rework due to doc/code mismatch. Two blocking issues must be fixed.
+          Resolution: removed phantom references from docs (not added to store.sh).
+        issues: |
+          `issues` phantom resource and `backup` stale action were blocking. Fixed in da454c0 + f4370bc.
+          `list sessions` filtering illusion is minor and was left as-is.
         children: []
 
-  - phase: "Phase 6 — Migration v6 → v7"
+  - phase: "Phase 6 — Migration v6 -> v7"
     started: "2026-04-13T23:20:24Z"
     ended: "2026-04-13T23:23:00Z"
     steps:
@@ -188,17 +876,246 @@ log:
         parent_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
         timestamp: "2026-04-13T23:20:24Z"
         task: |
-          Phase 6 — Ajouter VERSION file dans init.sh, commande --migrate
-          pour v6→v7, migrer le projet kiss-claw lui-même.
+          Phase 6 — Ajouter VERSION file dans init.sh, commande --migrate pour v6->v7,
+          et migrer le projet kiss-claw lui-même.
+
+          Task 1: Add VERSION=7 write in do_init() after structure creation.
+
+          Task 2: Add --migrate flag with do_migrate() function:
+          - Check $KC_DIR exists, read VERSION (absent=v6, "7"=already migrated)
+          - Create 3 subdirs (agents/, project/, sessions/)
+          - Move agent files (MEMORY_kiss-*.md, INSIGHTS.md, ANALYZED.md) -> agents/
+          - Move project files (MEMORY.md, ISSUES.md) -> project/
+          - Move session files (PLAN.md, STATE.md, etc.) -> sessions/YYYYMMDD-HHmmss/ (date from STATE.md mtime)
+          - Initialize SESSIONS.json if absent
+          - Remove TOKEN_STATS.md
+          - Write VERSION=7
+          - Handle duplicates: skip if target exists, don't overwrite
+
+          Task 3: Run migration on kiss-claw project. Handle existing project/ and sessions/ dirs
+          (created manually during dev).
+        rationale: |
+          The project itself still had the old v6 flat layout at .kiss-claw/ root alongside
+          the new v7 subdirectories created during development. Migration needed both as a
+          reusable feature and for the immediate cleanup.
         result: |
-          VERSION file + --migrate implémentés. Projet migré.
-          Commit 8c086a2 (55b8efa après cleanup).
+          - Modified scripts/init.sh: VERSION write in do_init, do_migrate() function, --migrate case, help text
+          - Ran bash scripts/init.sh --migrate: 12 files migrated, 1 skipped (ISSUES.md duplicate), TOKEN_STATS.md removed
+          - Verified: VERSION=7, all files in correct subdirectories, store.sh reads memory correctly,
+            idempotent re-run exits cleanly ("Already at layout v7")
+          Commit: 8c086a2 (55b8efa after cleanup)
+        artifacts: |
+          ### Task Report (kiss-executor)
+
+          ```
+          === TASK REPORT ===
+          Agent  : kiss-executor
+          Task   : Add VERSION file to init.sh, add --migrate command for v6->v7 layout migration,
+                   run migration on kiss-claw
+          Done   :
+            - Modified scripts/init.sh: added VERSION write in do_init, added do_migrate() function,
+              added --migrate case, updated help text
+            - Ran `bash scripts/init.sh --migrate` — successfully migrated 12 files, skipped 1 duplicate
+              (ISSUES.md), removed TOKEN_STATS.md
+            - Verified: VERSION=7, all files in correct subdirectories, store.sh reads memory correctly,
+              idempotent re-run exits cleanly
+          Caveats:
+            - .kiss-claw/ISSUES.md remains at root (duplicate of project/ISSUES.md) — user must clean up
+            - .kiss-claw/drafts/ directory was not part of migration spec and remains untouched
+            - The move_file helper is defined as a nested function inside do_migrate
+          ==================
+          ```
+
+          ### Migration summary
+          The do_migrate() function:
+          1. Detects version (absent VERSION -> v6, "7" -> exit early)
+          2. Creates agents/, project/, sessions/ subdirectories
+          3. Moves files with move_file helper (skips if target exists)
+          4. Creates session from STATE.md mtime (date -r for YYYYMMDD-HHmmss name)
+          5. Initializes SESSIONS.json if absent
+          6. Removes TOKEN_STATS.md
+          7. Writes VERSION=7
+        decisions: |
+          - Used mv (not cp+rm) for file moves -- atomic on same filesystem.
+          - Skip-on-duplicate instead of overwrite -- safer for projects with partial manual migration.
+          - Session name derived from STATE.md mtime via `date -r`.
+          - Nested move_file helper inside do_migrate (keeps scope contained).
+        issues: |
+          - .kiss-claw/ISSUES.md orphan at root (project/ISSUES.md existed with different content, skip was correct).
+          - drafts/ directory untouched (not in migration spec).
         children: []
 
       - agent: "kiss-verificator"
         claude_session: "agent-afeaeea81d185a013"
         parent_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
         timestamp: "2026-04-13T23:21:48Z"
-        task: "Review VERSION + migrate in init.sh"
-        result: "Approved-with-notes, cleanup appliqué."
+        task: |
+          Review VERSION + --migrate in init.sh. Verify:
+          1. do_migrate() logic: version detection, file movement, duplicate handling,
+             session creation from STATE.md mtime, SESSIONS.json init, TOKEN_STATS removal, VERSION write
+          2. do_init() writes VERSION=7
+          3. Disk state: all files in correct subdirectories
+          4. Idempotence: --migrate re-run is safe
+          5. store.sh read memory works correctly with migrated layout
+        rationale: |
+          Final review of the session. Migration is the riskiest operation (moves files) --
+          must verify safety guarantees (skip on duplicate, no data loss).
+        result: |
+          REV-0027: approved-with-notes. 2 minor data issues:
+          1. Orphan ISSUES.md at root (duplicate skip was correct, file lingers)
+          2. SESSIONS.json empty despite 2 sessions on disk
+          Cleanup applied (commit 55b8efa).
+        artifacts: |
+          ### REV-0027 — approved-with-notes
+
+          **Code review of do_migrate() in scripts/init.sh:**
+
+          1. **Version detection** (lines 311-319): Correct -- absent VERSION defaults to v6, "7" exits early.
+          2. **File movement** (lines 337-388): Logic sound. move_file helper correctly skips when target
+             exists and tracks both moved and skipped files.
+          3. **Session creation from STATE.md mtime** (lines 365-369): Correct -- uses `date -r`.
+          4. **SESSIONS.json initialization** (lines 392-403): Correct logic, but see issue below.
+          5. **TOKEN_STATS.md removal** (lines 406-409): Correct.
+          6. **VERSION=7 written** (line 412): Correct.
+          7. **do_init() writes VERSION=7** (line 288): Confirmed.
+          8. **Idempotence**: --migrate re-run exits at line 318 ("Already at layout v7"). Safe.
+          9. **store.sh read memory**: Resolves correctly to project/MEMORY.md.
+
+          **Issues found:**
+
+          1. `.kiss-claw/ISSUES.md` remains at root -- migration tried to move it to project/ISSUES.md
+             but project/ISSUES.md already existed (different content), so the original was skipped.
+             Orphan file outside v7 layout. Logged as "skipped" during migration.
+
+          2. `SESSIONS.json` is `{"sessions":[]}` despite two session directories on disk
+             (20260413-220308 from migration, 20260413-223433 current). SESSIONS.json was likely
+             pre-created empty before migration, so do_migrate skipped population. Data inconsistency
+             but not a functional blocker (sessions work via filesystem).
+
+          **For kiss-orchestrator:** Both minor -- proceed. Cleanup applied in commit 55b8efa.
+        decisions: |
+          Approved with notes. Orphan ISSUES.md and empty SESSIONS.json are data inconsistencies,
+          not code bugs. The migration logic itself is correct.
+        issues: |
+          - Orphan .kiss-claw/ISSUES.md at root (manually reconciled in cleanup commit).
+          - SESSIONS.json empty despite 2 sessions on disk (pre-created empty before migration).
+        children: []
+
+  - phase: "Session Summary"
+    started: "2026-04-13T22:03:26Z"
+    ended: "2026-04-13T23:23:00Z"
+    steps:
+      - agent: "kiss-orchestrator"
+        claude_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
+        parent_session: ""
+        timestamp: "2026-04-13T23:23:00Z"
+        task: |
+          Session orchestration: plan, delegate, review, and complete the multi-session persistence refonte.
+        rationale: |
+          Complete restructuration of .kiss-claw/ from flat layout to 3-tier (agents/project/sessions)
+          with configurable paths, symlink support, and multi-session management.
+        result: |
+          All 6 phases completed. 11 commits. 133/133 tests passing.
+        artifacts: |
+          ### Architecture Confirmed
+
+          ```
+          .kiss-claw/                              <- KISS_CLAW_DIR
+            VERSION                                <- "7"
+            agents/                                <- KISS_CLAW_AGENTS_DIR
+              MEMORY_kiss-orchestrator.md
+              MEMORY_kiss-executor.md
+              MEMORY_kiss-verificator.md
+              MEMORY_kiss-improver.md
+              INSIGHTS.md
+              ANALYZED.md
+            project/                               <- KISS_CLAW_PROJECT_DIR
+              MEMORY.md
+              ISSUES.md
+              SESSIONS.json
+            sessions/                              <- KISS_CLAW_SESSIONS_DIR
+              20260413-153022/
+                PLAN.md, STATE.md, REVIEWS.md, SCRATCH.md, CHECKPOINT.md
+          ```
+
+          ### Resource Mapping Table
+
+          | Variable | Default | Description |
+          |----------|---------|-------------|
+          | KISS_CLAW_DIR | .kiss-claw | Root |
+          | KISS_CLAW_AGENTS_DIR | $KISS_CLAW_DIR/agents | Agent memories |
+          | KISS_CLAW_PROJECT_DIR | $KISS_CLAW_DIR/project | Project data |
+          | KISS_CLAW_SESSIONS_DIR | $KISS_CLAW_DIR/sessions | Session folders |
+          | KISS_CLAW_SESSION | (none -- required at runtime) | Active session |
+
+          ### Key Decisions
+
+          - TOKEN_STATS.md disabled, added to ISSUES (ISSUE-006)
+          - New session = folder YYYYMMDD-HHmmss, renameable via mv
+          - kiss-orchestrator: list (sessions), resume <id> (reload), empty (new)
+          - project/SESSIONS.json: index with id/created/status/title
+          - Variables d'env (not config.yaml) for path configuration
+          - Symlink support via init.sh interactive dialogue
+
+          ### Final Status Banners
+
+          ```
+          === PLAN COMPLETE ===
+          Phase 1 : store.sh refonte           completed (d6dab3f)
+          Phase 2 : init.sh interactif         completed (39bcac2 + 4ca5433)
+          Phase 3 : Session management          completed (c927ad6 + cc5cece)
+          Phase 4 : Agents + hooks              completed (0845e36 + 96da2ee)
+          Phase 5 : Tests + docs                completed (514e8e4 + b82807b)
+          Phase 6 : Migration v6->v7            completed (55b8efa)
+          Tests   : 133/133 pass
+          Commits : 11 total
+          ========================
+          ```
+
+          ### Test Coverage Summary
+
+          **test-store.sh (61 tests):**
+          | Category | What is tested |
+          |----------|---------------|
+          | read | Missing file (empty), existing file |
+          | write | Creation, overwrite, "ok" return |
+          | append | Append to existing, create if absent |
+          | update | YAML field modification, special chars, error if absent |
+          | exists | Returns true/false correctly |
+          | list | Scans 3 subdirs, ignores unknown files |
+          | File location | Each resource lands in correct subdir |
+          | Session requirement | 5 session resources fail without KISS_CLAW_SESSION, 4 non-session succeed |
+          | Error cases | No args, unknown action, missing resource, update without field |
+
+          **test-e2e.sh (41 tests):**
+          | Phase | What is tested |
+          |-------|---------------|
+          | Phase 1 -- Init | init.sh creates 3 subdirs. MEMORY.md in project/, MEMORY_kiss-*.md in agents/ |
+          | Phase 2 -- Plan | Write plan + state in session dir, read back |
+          | Phase 3 -- Execute | Update state (step, status), verify values |
+          | Phase 4 -- Review | Append reviews, verify content, file in sessions/ |
+          | Phase 5 -- Improve | Append insights, file in agents/ (cross-session) |
+          | Phase 6 -- Checkpoint | session-end.sh creates CHECKPOINT.md in session dir |
+          | Phase 7 -- Guard | Blocks Write/Edit on protected files, allows store.sh via Bash |
+
+          **test-mock-store.sh (31 tests):**
+          Proves store.sh is substitutable. Mock uses flat-file TSV, same CLI interface.
+          Covers write/read/append/exists/update/list + session requirement.
+
+          **Not covered:**
+          - Symlink tests (init.sh choice 3)
+          - Interactive tty mode
+          - Multi-session parallel switching
+          - Python test scenarios (not impacted by refonte)
+        decisions: |
+          - Added Phase 6 (migration) during session when it became clear the project itself
+            needed migrating from v6 flat layout.
+          - Two executors ran in parallel for Phase 5 (tests + docs).
+          - Phantom `issues` resource removed from docs rather than added to store.sh
+            (ISSUES.md is managed directly, not through store.sh).
+        issues: |
+          - SESSIONS.json empty despite sessions on disk (data inconsistency, not functional).
+          - Orphan .kiss-claw/ISSUES.md manually cleaned up.
+          - kiss-improver still references token-stats (pre-existing issue).
+          - list sessions filtering is cosmetic (lists everything, not just sessions).
         children: []
