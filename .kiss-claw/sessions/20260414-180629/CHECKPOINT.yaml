@@ -1,7 +1,6 @@
-session: "20260414-180629"
-created: "2026-04-14T18:06:29"
-claude_session: "0ab54679-d98d-45c6-8faa-d9b533b1c27d"
-
+session: 20260414-180629
+created: '2026-04-14T18:06:29'
+claude_session: 0ab54679-d98d-45c6-8faa-d9b533b1c27d
 need:
   why: |
     Le CHECKPOINT.yaml de la session 20260414-170500 n avait pas été mis en
@@ -22,28 +21,51 @@ need:
     - Respecter le format de référence (session 082706)
     - Mapper les vrais IDs Claude depuis les fichiers .jsonl/.meta.json
     - Fermer la session 170500 dans SESSIONS.json avec résumé complet
-
 log:
-  - phase: "Phase unique — Reconstruction CHECKPOINT + close session 170500"
-    started: "2026-04-14T18:06:29Z"
-    ended: "2026-04-14T18:12:00Z"
-    steps:
-      - agent: "kiss-orchestrator"
-        claude_session: "0ab54679-d98d-45c6-8faa-d9b533b1c27d"
-        timestamp: "2026-04-14T18:06:29Z"
-        task: |
-          Récupérer le contexte complet de la session 20260414-170500 :
-          lire CHECKPOINT, plan, state existants. Identifier la session
-          Claude parent (5e57d2da) et ses 4 subagents via ls sur
-          ~/.claude/projects/. Mapper chaque entrée du log plat aux vrais
-          IDs (agent-a81b12f6903b3d8dc, agent-af6acaec3e7b68808,
-          agent-a9ba3858ebf146037, agent-ab5f9021ff2f76c82).
-        result: |
-          CHECKPOINT.yaml de 170500 entièrement réécrit : header avec
-          claude_session, need correctement indentée, log structuré par
-          phase avec started/ended/steps, vrais IDs Claude pour les 4
-          subagents, parent_session renseigné, hiérarchie children
-          pour le test de détection. Session 170500 fermée dans
-          SESSIONS.json avec résumé complet (need, outcome,
-          files_changed, decisions, next). State marqué done.
-        children: []
+- phase: Phase unique — Reconstruction CHECKPOINT + close session 170500
+  started: '2026-04-14T18:06:29Z'
+  ended: '2026-04-14T18:12:00Z'
+  steps:
+  - agent: kiss-orchestrator
+    claude_session: 0ab54679-d98d-45c6-8faa-d9b533b1c27d
+    timestamp: '2026-04-14T18:06:29Z'
+    task: |
+      Récupérer le contexte complet de la session 20260414-170500 :
+      lire CHECKPOINT, plan, state existants. Identifier la session
+      Claude parent (5e57d2da) et ses 4 subagents via ls sur
+      ~/.claude/projects/. Mapper chaque entrée du log plat aux vrais
+      IDs (agent-a81b12f6903b3d8dc, agent-af6acaec3e7b68808,
+      agent-a9ba3858ebf146037, agent-ab5f9021ff2f76c82).
+    result: |
+      CHECKPOINT.yaml de 170500 entièrement réécrit : header avec
+      claude_session, need correctement indentée, log structuré par
+      phase avec started/ended/steps, vrais IDs Claude pour les 4
+      subagents, parent_session renseigné, hiérarchie children
+      pour le test de détection. Session 170500 fermée dans
+      SESSIONS.json avec résumé complet (need, outcome,
+      files_changed, decisions, next). State marqué done.
+    children: []
+    artifacts: ''
+    decisions: ''
+    issues: |-
+      ```
+      === SESSION CLOSED ===
+      Session  : 20260413-223433
+      Title    : Refonte persistence multi-session
+      Duration : 2026-04-13T22:34:33 -> 2026-04-13T23:23:00
+      Files    : 18 files changed
+      Next     : CHECKPOINT.yaml session-scoped (fait en 082706), tester multi-session en réel
+      =====================
+      ```
+
+      Toutes les sessions sont maintenant `done`. Récapitulatif du journal :
+
+      | Session | Title | Status |
+      |---------|-------|--------|
+      | 20260413-220308 | ISSUE-002: Functional Test Framework | done |
+      | 20260413-223433 | Refonte persistence multi-session | done (CHECKPOINT reconstruit) |
+      | 20260414-082706 | CHECKPOINT.yaml + Journal évolutions | done |
+      | 20260414-143500 | Documentation Diátaxis | done |
+      | 20260414-170500 | Détection runtime claude_session ID | done (CHECKPOINT reconstruit) |
+      | 20260414-180629 | Backfill CHECKPOINT 170500 + close | done |
+    rationale: ''

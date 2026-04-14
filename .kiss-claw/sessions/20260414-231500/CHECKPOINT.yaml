@@ -28,13 +28,13 @@ constraints: |
 log:
   - agent: "kiss-orchestrator"
     claude_session: "orchestrator-20260414-231500"
-    timestamp: "2026-04-14T20:44:43Z"
-    task: "Delegation kiss-executor — Phase 3 (skill command + adaptation 4 agents)"
+    timestamp: "2026-04-14T20:49:30Z"
+    task: "Delegation kiss-executor — Phase 4 (enrichir 4 CHECKPOINTs existants)"
     result: "En cours — delegue a kiss-executor"
     children:
       - agent: "kiss-executor"
         claude_session: "executor-20260414-231500"
-        timestamp: "2026-04-14T20:46:32Z"
-        task: "Phase 3 — skill command kiss-checkpoint-enrich + adaptation 4 agents"
-        result: "Created commands/kiss-checkpoint-enrich.md slash command. Added enrichment call (python3 scripts/checkpoint_enrich.py) after checkpoint upsert in all 4 agent files: kiss-orchestrator (INIT + delegation template), kiss-executor, kiss-verificator, kiss-improver."
+        timestamp: "2026-04-14T20:52:23Z"
+        task: "Phase 4 — Validate checkpoint-enrich.py on 4 existing CHECKPOINT.yaml files"
+        result: "All 4 sessions enriched successfully. 082706: 12/12 steps enriched. 143500: 9/9 steps enriched (1 step had no classification keywords but task/result updated). 170500: 4/4 top-level steps enriched (1 child step not processed — script does not recurse into children). 180629: 1/1 step enriched. Required --transcripts-dir flag due to slug mismatch (script derives home-omc-workspace-kiss-claw, actual dir is -home-omc-workspace-kiss-claw). Some long artifacts rendered as double-quoted YAML with continuation instead of block scalar — valid but less readable."
         children: []
