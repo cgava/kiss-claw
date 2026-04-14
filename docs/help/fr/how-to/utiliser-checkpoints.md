@@ -87,7 +87,4 @@ Quand vous dites `close session`, l'orchestrateur lit le CHECKPOINT.yaml pour co
 
 ## Difference entre CHECKPOINT.md et CHECKPOINT.yaml
 
-- **CHECKPOINT.md** : genere par le hook `session-end.sh` a la fin de chaque session Claude. Contient un snapshot de STATE.md, les fichiers modifies et une instruction de reprise. Ecrit via `store.sh write checkpoint`.
-- **CHECKPOINT.yaml** : gere par les agents via `store.sh checkpoint init-need` et `store.sh checkpoint upsert`. Contient le besoin structure et le log hierarchique des actions.
-
-Le hook `session-end.sh` ecrit dans la meme resource `checkpoint`, ce qui peut ecraser le CHECKPOINT.yaml si les deux mecanismes coexistent. En pratique, le CHECKPOINT.yaml est le format principal utilise par les agents pour la tracabilite.
+Les deux formats coexistent avec des roles distincts. Pour une explication detaillee de leur design et de leur interaction, voir [Design des checkpoints](../explanation/checkpoint-design.md).

@@ -14,7 +14,7 @@ kiss-claw utilise 4 agents specialises. Chacun a un role distinct, des ressource
 | `state`     | ecriture   |
 | `scratch`   | ecriture   |
 | `sessions`  | ecriture   |
-| `memory`    | lecture    |
+| `memory`    | lecture/ecriture |
 | `memory:kiss-orchestrator` | ecriture |
 | `checkpoint` | ecriture (via `init-need` et `upsert`) |
 

@@ -24,6 +24,7 @@ mode: "live"             # live | dry-run
 token_budget:
   per_step: 8000         # soft limit par etape kiss-executor (tokens)
   warn_at: 6000          # seuil d'alerte
+  session_total: 0       # mis a jour par kiss-improver apres chaque analyse de session
 
 last_checkpoint: ""      # ISO datetime du dernier checkpoint
 

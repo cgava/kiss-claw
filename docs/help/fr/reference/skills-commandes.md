@@ -22,7 +22,7 @@ Commandes slash disponibles dans kiss-claw, utilisables dans une session Claude 
 | `update`  | Mettre a jour un champ YAML              |
 | `exists`  | Verifier si une ressource existe         |
 | `list`    | Lister les ressources disponibles        |
-| `inspect` | Afficher la configuration resolue        |
+| `inspect` | Afficher la configuration resolue (disponible via `bash scripts/store.sh inspect` uniquement, pas via la commande slash `/kiss-store`) |
 
 **Exemples** :
 

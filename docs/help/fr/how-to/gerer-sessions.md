@@ -93,34 +93,6 @@ Le resume est synthetise a partir du CHECKPOINT -- il capture l'intention d'orig
 
 ## Format SESSIONS.json
 
-Session en cours :
+Chaque session est enregistree dans SESSIONS.json. Les sessions fermees incluent un objet `summary` synthetise a partir du CHECKPOINT.
 
-```json
-{
-  "id": "20260414-153022",
-  "created": "2026-04-14T15:30:22",
-  "status": "in_progress",
-  "title": "Export CSV CLI"
-}
-```
-
-Session fermee (avec resume) :
-
-```json
-{
-  "id": "20260414-153022",
-  "created": "2026-04-14T15:30:22",
-  "status": "done",
-  "title": "Export CSV CLI",
-  "closed": "2026-04-14T16:45:00",
-  "summary": {
-    "need": "Ajouter une commande CLI pour exporter les donnees en CSV...",
-    "outcome": "Commande export-csv implementee avec support des filtres...",
-    "files_changed": ["src/cli.py", "tests/test_cli.py"],
-    "decisions": ["Format CSV standard (pas Excel)", "Pas de streaming v1"],
-    "next": ["Support streaming pour gros fichiers"]
-  }
-}
-```
-
-Les champs `closed` et `summary` ne sont presents que sur les sessions avec `status: "done"`. Les sessions plus anciennes sans `summary` restent valides (retrocompatible).
+Pour le format complet avec tous les champs et exemples, voir [Formats de fichiers -- SESSIONS.json](../reference/formats-fichiers.md#sessionsjson).
