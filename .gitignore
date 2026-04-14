@@ -3,3 +3,4 @@ __pycache__/
 .venv/
 tests/.venv/
 .kiss-claw/sessions
+.kiss-claw/claude-sessions

@@ -56,7 +56,7 @@ kiss-claw/
         STATE.md           — Execution state and progress
         REVIEWS.md         — Code review results from kiss-verificator
         SCRATCH.md         — Volatile notes
-        CHECKPOINT.md      — Session checkpoint data
+        CHECKPOINT.yaml    — Session checkpoint data (YAML)
 ```
 
 ## Key conventions

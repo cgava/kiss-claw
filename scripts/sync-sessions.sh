@@ -117,10 +117,6 @@ else
   DEST_SUBDIRS=$(count_subdirs "$DEST_DIR")
   NEW_COUNT=$((DEST_TOTAL - EXISTING_BEFORE))
   [[ "$NEW_COUNT" -lt 0 ]] && NEW_COUNT=0
-  UPDATED_COUNT=$((DEST_TOTAL - NEW_COUNT - EXISTING_BEFORE + NEW_COUNT))
-  # Approximate: updated = total synced minus genuinely new
-  # rsync --update only copies newer files, so updated = previously existing that got refreshed
-  # We can't know exactly without parsing rsync output, so we report total and new
   UPDATED_COUNT="--"
   SIZE_MB=$(dir_size_mb "$DEST_DIR")
 fi
