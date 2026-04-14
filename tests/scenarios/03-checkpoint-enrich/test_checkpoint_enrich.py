@@ -35,16 +35,6 @@ SCRIPT_PATH = os.path.join(_project_root, "scripts", "checkpoint-enrich.py")
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _load_yaml_stdlib(path):
-    """Minimal YAML loader using only stdlib — good enough for test assertions.
-
-    Parses the YAML just enough to check key presence and values.
-    For proper parsing, checkpoint-enrich.py will use pyyaml.
-    """
-    with open(path, "r") as f:
-        return f.read()
-
-
 def _make_temp_workspace(tmp_dir):
     """Create a temporary workspace mirroring the expected directory structure.
 
@@ -107,13 +97,14 @@ def test_parse_jsonl():
     for block in blocks:
         assert len(block) >= 100, f"Block too short ({len(block)} chars): {block[:50]}..."
 
-    # Should have exactly 5 substantial blocks from our fixture:
+    # Should have exactly 6 substantial blocks from our fixture:
     # 1. "I will start by reading..." (first substantial)
     # 2. "J'ai choisi de restructurer..." (decision)
     # 3. "Here is the summary..." (table/artifact)
     # 4. "One caveat to note..." (issue)
-    # 5. "=== TASK REPORT ===" (artifact)
-    assert len(blocks) == 5, f"Expected 5 blocks, got {len(blocks)}"
+    # 5. "Verdict : approved-with-notes..." (artifact — REV/Verdict)
+    # 6. "=== TASK REPORT ===" (artifact)
+    assert len(blocks) == 6, f"Expected 6 blocks, got {len(blocks)}"
 
 
 def test_classify_blocks():
@@ -125,6 +116,7 @@ def test_classify_blocks():
         "J'ai choisi cette approche plutot que l'alternative car elle est plus simple" + " " * 50,
         "One caveat: the function does not handle edge cases correctly" + " " * 50,
         "=== TASK REPORT ===\nAgent: kiss-executor\nTask: do something\nDone:\n  - file modified" + " " * 50,
+        "Verdict : approved-with-notes\nREV-0003 — store.sh coverage is good but guard.sh has gaps" + " " * 50,
         "This is a generic block with no special signals but still substantial content" + " " * 50,
     ]
 
@@ -132,7 +124,7 @@ def test_classify_blocks():
 
     # classified should be a dict with keys: artifacts, decisions, issues, rationale
     assert isinstance(classified, dict), f"Expected dict, got {type(classified).__name__}"
-    for key in ("artifacts", "decisions", "issues"):
+    for key in ("artifacts", "decisions", "issues", "rationale"):
         assert key in classified, f"Missing key: {key}"
 
     # Table block -> artifacts
@@ -143,9 +135,17 @@ def test_classify_blocks():
     assert any("TASK REPORT" in a for a in classified["artifacts"]), \
         "Task report block should be classified as artifact"
 
+    # Verdict / REV- -> artifacts
+    assert any("Verdict" in a or "REV-" in a for a in classified["artifacts"]), \
+        "Verdict/REV- block should be classified as artifact"
+
     # Decision keyword -> decisions
     assert any("choisi" in d for d in classified["decisions"]), \
         "Decision block should be classified as decision"
+
+    # Rationale synthesized from decisions
+    assert len(classified["rationale"]) > 0, \
+        "Rationale should be synthesized from decision blocks"
 
     # Caveat keyword -> issues
     assert any("caveat" in i for i in classified["issues"]), \
