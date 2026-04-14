@@ -1,0 +1,204 @@
+session: "20260413-223433"
+created: "2026-04-13T22:34:33"
+claude_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
+
+need:
+  why: |
+    En mode dev, kiss-claw partage un seul répertoire .kiss-claw/ entre
+    le projet hôte et le plugin lui-même. La structure plate (tous les
+    fichiers au même niveau) crée des conflits et empêche le multi-session.
+    Catégorie : dette_technique
+  raw: |
+    J ai un problème quand j utilise kiss-claw en mode dev pour d autres
+    projets : les fichiers d état se mélangent. Il faut restructurer
+    .kiss-claw/ en sous-dossiers (agents, project, sessions) avec chemins
+    configurables via variables d environnement, symlinks possibles, et
+    support multi-session.
+  elicited: |
+    Restructuration complète de .kiss-claw/ en 3 tiers :
+    - agents/ (mémoires agents, insights, analyzed)
+    - project/ (mémoire partagée, issues, sessions.json)
+    - sessions/ (plan, state, reviews, scratch, checkpoint par session)
+    Chemins configurables via KISS_CLAW_AGENTS_DIR, KISS_CLAW_PROJECT_DIR,
+    KISS_CLAW_SESSIONS_DIR. Support symlinks. Multi-session avec ID YYYYMMDD-HHmmss.
+  constraints: |
+    - Zéro dépendance externe (shell pur)
+    - Rétrocompatible avec v6 (migration automatique)
+    - store.sh reste le seul point d accès persistance
+
+log:
+  - phase: "Phase 1 — Core : store.sh refonte"
+    started: "2026-04-13T22:03:26Z"
+    ended: "2026-04-13T22:37:00Z"
+    steps:
+      - agent: "kiss-executor"
+        claude_session: "agent-a066ac33eacf3035f"
+        parent_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
+        timestamp: "2026-04-13T22:03:26Z"
+        task: |
+          Step 1.1 — Refactorer resolve() dans store.sh pour supporter
+          3 catégories (agents/, project/, sessions/) avec variables d env.
+        result: |
+          store.sh refactoré : resolve() supporte les 3 sous-dossiers,
+          KISS_CLAW_SESSION requis pour ressources session-scoped.
+          Commit : 1ea12ce refactor(store): Phase 1
+        children: []
+
+      - agent: "kiss-verificator"
+        claude_session: "agent-a9db67f0d2c1b251c"
+        parent_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
+        timestamp: "2026-04-13T22:06:43Z"
+        task: "Review store.sh refactor step 1.1"
+        result: "REV-0028 : approved"
+        children: []
+
+      - agent: "kiss-executor"
+        claude_session: "agent-a5ed9ea63261cd1bf"
+        parent_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
+        timestamp: "2026-04-13T22:35:17Z"
+        task: |
+          Steps 1.3 + 1.5 : retirer token-stats du resolve/reverse_map
+          (créer ISSUE), ajouter ressource sessions → project/SESSIONS.json.
+        result: |
+          token-stats retiré, ISSUE créée. SESSIONS.json ajouté au resolve.
+          REV-0029/0030 approved.
+        children: []
+
+      - agent: "kiss-verificator"
+        claude_session: "agent-a9a4bc9d1485f5b87"
+        parent_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
+        timestamp: "2026-04-13T22:36:11Z"
+        task: "Review steps 1.3+1.5 and Phase 1 completion"
+        result: "Approved — Phase 1 complete"
+        children: []
+
+  - phase: "Phase 2 — Init : init.sh interactif"
+    started: "2026-04-13T22:38:42Z"
+    ended: "2026-04-13T22:47:00Z"
+    steps:
+      - agent: "kiss-executor"
+        claude_session: "agent-a8a33984890c216c2"
+        parent_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
+        timestamp: "2026-04-13T22:38:42Z"
+        task: |
+          Phase 2 — Refactorer init.sh : dialogue interactif pour chaque
+          sous-dossier, support symlinks, copie templates, init SESSIONS.json.
+        result: |
+          init.sh refactoré avec dialogue interactif. Commits 39bcac2 + 4ca5433.
+        children: []
+
+      - agent: "kiss-verificator"
+        claude_session: "agent-a050a32b961d5a377"
+        parent_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
+        timestamp: "2026-04-13T22:40:34Z"
+        task: "Review init.sh Phase 2 refactor"
+        result: "REV-0027 : approved-with-notes (symlink guard, grep -qF, template separator)"
+        children: []
+
+      - agent: "kiss-executor"
+        claude_session: "agent-a1481a46a8b83ee8d"
+        parent_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
+        timestamp: "2026-04-13T22:45:59Z"
+        task: "Fix 3 minor issues from REV-0027"
+        result: "3 fixes appliqués. Commit fd0151c."
+        children: []
+
+  - phase: "Phase 3 — Session management dans kiss-orchestrator"
+    started: "2026-04-13T22:49:47Z"
+    ended: "2026-04-13T22:54:00Z"
+    steps:
+      - agent: "kiss-executor"
+        claude_session: "agent-a4a34f35e8911d0f3"
+        parent_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
+        timestamp: "2026-04-13T22:49:47Z"
+        task: |
+          Phase 3 — Ajouter commandes list, resume, new session dans
+          kiss-orchestrator. Propager KISS_CLAW_SESSION aux agents délégués.
+          Mettre à jour SESSIONS.json à chaque création/clôture.
+        result: |
+          Orchestrator enrichi avec session management complet.
+          Commits c927ad6 + cc5cece.
+        children: []
+
+      - agent: "kiss-verificator"
+        claude_session: "agent-a6457fc7443212b0b"
+        parent_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
+        timestamp: "2026-04-13T22:51:17Z"
+        task: "Review Phase 3 orchestrator session management"
+        result: "REV-0027 : approved-with-notes, fixes appliqués (f21f56e)"
+        children: []
+
+  - phase: "Phase 4 — Adaptation agents + hooks"
+    started: "2026-04-13T22:54:38Z"
+    ended: "2026-04-13T22:58:00Z"
+    steps:
+      - agent: "kiss-executor"
+        claude_session: "agent-a97f13acf861d9164"
+        parent_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
+        timestamp: "2026-04-13T22:54:38Z"
+        task: |
+          Phase 4 — Adapter guard.sh (chemins protégés), session-end.sh
+          (chemins checkpoint), 4 agent.md, hooks.json à la nouvelle structure.
+        result: |
+          Hooks et agents adaptés. Commits 0845e36 + 96da2ee.
+        children: []
+
+      - agent: "kiss-verificator"
+        claude_session: "agent-a73adbb8b1607bed8"
+        parent_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
+        timestamp: "2026-04-13T22:56:40Z"
+        task: "Review Phase 4 agents + hooks adaptation"
+        result: "Approved-with-notes, fixes appliqués (acfd93b)"
+        children: []
+
+  - phase: "Phase 5 — Tests + documentation"
+    started: "2026-04-13T23:01:01Z"
+    ended: "2026-04-13T23:20:00Z"
+    steps:
+      - agent: "kiss-executor"
+        claude_session: "agent-a52799b81f74f78d1"
+        parent_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
+        timestamp: "2026-04-13T23:01:01Z"
+        task: "Phase 5.1-5.2 — Adapter test-store.sh et test-e2e.sh"
+        result: "Tests adaptés à la nouvelle structure 3-tier + multi-session."
+        children: []
+
+      - agent: "kiss-executor"
+        claude_session: "agent-a96d14435cd7da357"
+        parent_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
+        timestamp: "2026-04-13T23:01:12Z"
+        task: "Phase 5.3-5.4 — Mettre à jour CLAUDE.md, README, commands/kiss-store.md"
+        result: "Documentation mise à jour. Commits 514e8e4 + b82807b."
+        children: []
+
+      - agent: "kiss-verificator"
+        claude_session: "agent-a3dfe3c2d6d191413"
+        parent_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
+        timestamp: "2026-04-13T23:05:08Z"
+        task: "Review Phase 5 tests + docs"
+        result: "Needs-rework (phantom issues resource, stale backup ref). Fixes appliqués (da454c0 + f4370bc)."
+        children: []
+
+  - phase: "Phase 6 — Migration v6 → v7"
+    started: "2026-04-13T23:20:24Z"
+    ended: "2026-04-13T23:23:00Z"
+    steps:
+      - agent: "kiss-executor"
+        claude_session: "agent-af1bdc22c66a5b755"
+        parent_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
+        timestamp: "2026-04-13T23:20:24Z"
+        task: |
+          Phase 6 — Ajouter VERSION file dans init.sh, commande --migrate
+          pour v6→v7, migrer le projet kiss-claw lui-même.
+        result: |
+          VERSION file + --migrate implémentés. Projet migré.
+          Commit 8c086a2 (55b8efa après cleanup).
+        children: []
+
+      - agent: "kiss-verificator"
+        claude_session: "agent-afeaeea81d185a013"
+        parent_session: "6dd4a886-0060-4cf9-96e5-6ed0dc4adb50"
+        timestamp: "2026-04-13T23:21:48Z"
+        task: "Review VERSION + migrate in init.sh"
+        result: "Approved-with-notes, cleanup appliqué."
+        children: []

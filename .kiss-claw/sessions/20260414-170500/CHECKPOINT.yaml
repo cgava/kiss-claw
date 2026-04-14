@@ -1,45 +1,93 @@
 session: "20260414-170500"
-created: "2026-04-14T15:14:14"
+created: "2026-04-14T17:05:00"
+claude_session: "5e57d2da-222a-4676-93ed-6a825398d916"
 
 need:
-why: |
-  Les CHECKPOINT.yaml actuels sont inutilisables pour la rétroaction :
-  pas de vrais IDs de session Claude, pas de hiérarchie phase/steps,
-  entrées manquantes. Impossible de retrouver quel transcript Claude
-  correspond à quelle étape du plan.
-  Catégorie : dette_technique
-raw: |
-  Les fichiers CHECKPOINT.yaml (sessions 082706 et 143500) ne sont pas
-  à la qualité attendue. Ils doivent permettre d indexer les prompts pour
-  la rétroaction, ET transférer le contexte du projet. Actuellement le log
-  est une liste plate indexée par agents, sans le vrai numéro de session
-  Claude. Il faut aussi vérifier si les agents peuvent récupérer leur
-  claude_session ID au runtime.
-elicited: |
-  Deux objectifs concrets :
-  1. Reconstruire les 2 CHECKPOINT.yaml existants avec les vrais IDs Claude
-  2. Vérifier si les agents peuvent connaître leur session ID au runtime
-constraints: |
-  - Shell pur + python3 pour parsing jsonl
-  - Le mapping a posteriori est acceptable
-  - Pas de refonte store.sh
+  why: |
+    Les CHECKPOINT.yaml actuels sont inutilisables pour la rétroaction :
+    pas de vrais IDs de session Claude, pas de hiérarchie phase/steps,
+    entrées manquantes. Impossible de retrouver quel transcript Claude
+    correspond à quelle étape du plan.
+    Catégorie : dette_technique
+  raw: |
+    Les fichiers CHECKPOINT.yaml (sessions 082706 et 143500) ne sont pas
+    à la qualité attendue. Ils doivent permettre d indexer les prompts pour
+    la rétroaction, ET transférer le contexte du projet. Actuellement le log
+    est une liste plate indexée par agents, sans le vrai numéro de session
+    Claude. Il faut aussi vérifier si les agents peuvent récupérer leur
+    claude_session ID au runtime.
+  elicited: |
+    Deux objectifs concrets :
+    1. Reconstruire les 2 CHECKPOINT.yaml existants avec les vrais IDs Claude
+    2. Vérifier si les agents peuvent connaître leur session ID au runtime
+  constraints: |
+    - Shell pur + python3 pour parsing jsonl
+    - Le mapping a posteriori est acceptable
+    - Pas de refonte store.sh
 
 log:
-  - agent: "kiss-orchestrator"
-    claude_session: "orchestrator-20260414-170500"
-    timestamp: "2026-04-14T15:18:42Z"
-    task: "Délégation kiss-executor — Mise à jour agents pour détection claude_session ID au runtime"
-    result: "En cours — délégué à kiss-executor"
-    children: []
-  - agent: "kiss-executor"
-    claude_session: "executor-20260414-170500"
-    timestamp: "2026-04-14T15:21:55Z"
-    task: "Remplacer placeholders claude_session par detection runtime dans 4 agent.md"
-    result: "4 fichiers modifies: orchestrator (CHECKPOINT init, tracking continu, Session ID Claude), executor, verificator, improver (CHECKPOINT logging). Detection via ls -t .jsonl/.meta.json avec fallback. PARENT_CLAUDE_SESSION integre dans delegation."
-    children: []
-  - agent: "kiss-executor"
-    claude_session: "agent-ab5f9021ff2f76c82"
-    timestamp: "2026-04-14T15:26:33Z"
-    task: "Fix slug derivation — supprimer s|^-|| dans les 4 agent.md"
-    result: "7 occurrences corrigées (4 orchestrator, 1 executor, 1 verificator, 1 improver). Vérifié: 0 occurrences restantes du pattern buggé."
-    children: []
+  - phase: "Phase 2 — Runtime : détection claude_session ID"
+    started: "2026-04-14T17:17:20Z"
+    ended: "2026-04-14T17:41:21Z"
+    steps:
+      - agent: "kiss-orchestrator"
+        claude_session: "5e57d2da-222a-4676-93ed-6a825398d916"
+        timestamp: "2026-04-14T17:17:00Z"
+        task: |
+          INIT — Plan généré pour restructuration CHECKPOINT.yaml.
+          Phase 1 (backfill 2 CHECKPOINTs) non exécutée.
+          Délégation directe Phase 2 (runtime detection).
+        result: |
+          Plan 2 phases créé. Phase 1 (backfill) skippée au profit
+          de la Phase 2 (runtime detection) plus prioritaire.
+        children:
+          - agent: "general-purpose"
+            claude_session: "agent-a81b12f6903b3d8dc"
+            parent_session: "5e57d2da-222a-4676-93ed-6a825398d916"
+            timestamp: "2026-04-14T17:17:20Z"
+            task: "Test : détecter son propre claude_session ID au runtime depuis un subagent"
+            result: "Mécanisme validé : ls -t sur .jsonl (parent) et .meta.json (subagent) fonctionne."
+            children: []
+
+      - agent: "kiss-executor"
+        claude_session: "agent-af6acaec3e7b68808"
+        parent_session: "5e57d2da-222a-4676-93ed-6a825398d916"
+        timestamp: "2026-04-14T17:19:31Z"
+        task: |
+          Remplacer placeholders claude_session par détection runtime dans les
+          4 agent.md (orchestrator, executor, verificator, improver). Ajouter
+          sections CHECKPOINT avec détection via ls -t .jsonl/.meta.json et
+          fallback. Intégrer PARENT_CLAUDE_SESSION dans les délégations.
+        result: |
+          4 fichiers agent.md modifiés : orchestrator (CHECKPOINT init, tracking
+          continu, Session ID Claude — 3 blocs bash), executor (step 6 logging),
+          verificator (logging après verdict), improver (step 7.5 logging).
+          Détection via ls -t avec fallback <agent>-$KISS_CLAW_SESSION.
+          Commit : 26fce85 feat(agents): replace claude_session placeholders with runtime detection
+        children: []
+
+      - agent: "kiss-verificator"
+        claude_session: "agent-a9ba3858ebf146037"
+        parent_session: "5e57d2da-222a-4676-93ed-6a825398d916"
+        timestamp: "2026-04-14T17:22:30Z"
+        task: |
+          Review des patches de détection claude_session dans les 4 agents.
+          Vérifier cohérence des mécanismes de détection, fallback, et
+          intégration avec store.sh checkpoint upsert.
+        result: |
+          Verdict : approved-with-notes. Bug identifié dans la dérivation
+          du slug : le sed s|^-|| supprimait le mauvais tiret. Rework demandé.
+        children: []
+
+      - agent: "kiss-executor"
+        claude_session: "agent-ab5f9021ff2f76c82"
+        parent_session: "5e57d2da-222a-4676-93ed-6a825398d916"
+        timestamp: "2026-04-14T17:24:55Z"
+        task: |
+          Fix slug derivation — supprimer le sed s|^-|| buggé dans les 4 agent.md.
+          Le pattern supprimait le premier tiret du slug au lieu du slash initial.
+        result: |
+          7 occurrences corrigées (4 orchestrator, 1 executor, 1 verificator,
+          1 improver). Vérifié : 0 occurrences restantes du pattern buggé.
+          Commit inclus dans 26fce85 (même branche, amendé).
+        children: []

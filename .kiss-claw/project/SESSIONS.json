@@ -9,8 +9,16 @@
     {
       "id": "20260413-223433",
       "created": "2026-04-13T22:34:33",
-      "status": "in_progress",
-      "title": "Refonte persistence multi-session"
+      "status": "done",
+      "title": "Refonte persistence multi-session",
+      "closed": "2026-04-13T23:23:00",
+      "summary": {
+        "need": "En mode dev, kiss-claw partageait un seul répertoire .kiss-claw/ plat entre le projet hôte et le plugin. Conflits de fichiers d état et impossibilité de gérer plusieurs sessions en parallèle.",
+        "outcome": "Restructuration complète en 3 tiers (agents/, project/, sessions/). store.sh refactoré avec resolve() 3 catégories et KISS_CLAW_SESSION. init.sh interactif avec support symlinks. Orchestrator enrichi avec list/resume/new session. Hooks et 4 agents adaptés. Tests 133/133 pass. Migration v6→v7 automatique via --migrate.",
+        "files_changed": ["scripts/store.sh", "scripts/init.sh", "agents/kiss-orchestrator/agent.md", "agents/kiss-executor/agent.md", "agents/kiss-verificator/agent.md", "agents/kiss-improver/agent.md", "hooks/guard.sh", "hooks/hooks.json", "hooks/session-end.sh", "commands/kiss-store.md", "CLAUDE.md", "README.md", "README-fr.md", "tests/test-store.sh", "tests/test-e2e.sh", "tests/test-mock-store.sh", "templates/MEMORY_agents.md.template", ".gitignore"],
+        "decisions": ["Structure 3-tier (agents/project/sessions) plutôt que flat", "Variables d env configurables (KISS_CLAW_AGENTS_DIR, KISS_CLAW_PROJECT_DIR, KISS_CLAW_SESSIONS_DIR)", "Session ID format YYYYMMDD-HHmmss", "KISS_CLAW_SESSION requis pour ressources session-scoped", "Migration automatique v6→v7 via init.sh --migrate", "VERSION file pour détecter le layout"],
+        "next": ["CHECKPOINT.yaml session-scoped (implémenté session 082706)", "Tester multi-session en conditions réelles"]
+      }
     },
     {
       "id": "20260414-082706",
@@ -43,8 +51,30 @@
     {
       "id": "20260414-170500",
       "created": "2026-04-14T17:05:00",
-      "status": "in_progress",
-      "title": ""
+      "status": "done",
+      "title": "Détection runtime claude_session ID dans les agents",
+      "closed": "2026-04-14T18:10:00",
+      "summary": {
+        "need": "Les CHECKPOINT.yaml utilisaient des placeholders au lieu des vrais IDs de session Claude. Impossible de relier les entrées du CHECKPOINT aux transcripts réels. Les agents ne savaient pas détecter leur propre claude_session ID au runtime.",
+        "outcome": "Mécanisme de détection runtime implémenté dans les 4 agents : ls -t sur .jsonl (parent) et .meta.json (subagent) avec fallback. Bug de dérivation du slug corrigé (sed s|^-|| supprimait le mauvais tiret). PARENT_CLAUDE_SESSION intégré dans les délégations orchestrator → subagents.",
+        "files_changed": ["agents/kiss-orchestrator/agent.md", "agents/kiss-executor/agent.md", "agents/kiss-verificator/agent.md", "agents/kiss-improver/agent.md", ".kiss-claw/agents/MEMORY_kiss-orchestrator.md", "scripts/sync-sessions.sh"],
+        "decisions": ["Détection via ls -t sur fichiers .jsonl/.meta.json plutôt que variable d environnement", "Fallback <agent>-$KISS_CLAW_SESSION si détection échoue", "Slug dérivé de $PWD via sed sans suppression du tiret initial"],
+        "next": ["Backfill CHECKPOINT.yaml des sessions 082706 et 143500 (Phase 1 non exécutée)", "Tester la détection runtime en conditions réelles (nouvelle session avec les 4 agents)"]
+      }
+    },
+    {
+      "id": "20260414-180629",
+      "created": "2026-04-14T18:06:29",
+      "status": "done",
+      "title": "Backfill CHECKPOINT session 170500 + close session",
+      "closed": "2026-04-14T18:13:00",
+      "summary": {
+        "need": "Le CHECKPOINT.yaml de la session 170500 était resté au format plat avec des placeholders claude_session, car cette session implémentait justement les instructions de détection runtime.",
+        "outcome": "CHECKPOINT.yaml de 170500 entièrement reconstruit au format de référence : claude_session au header (5e57d2da), log structuré par phases, 4 vrais IDs subagents mappés, hiérarchie parent/children. Session 170500 fermée avec résumé complet dans SESSIONS.json.",
+        "files_changed": [".kiss-claw/sessions/20260414-170500/CHECKPOINT.yaml", ".kiss-claw/project/SESSIONS.json"],
+        "decisions": ["Écriture directe du CHECKPOINT plutôt que upsert itératif (store.sh ne supporte pas la réécriture complète)", "Mapping des IDs Claude via ls sur ~/.claude/projects/ et cross-référence des .meta.json"],
+        "next": ["none"]
+      }
     }
   ]
 }

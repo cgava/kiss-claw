@@ -33,3 +33,6 @@ C'est dans l'idée de supprimer aussi, comme dans le protocole elon
 
 ## 2026-04-14 - Transformer le sessions en skill
 Pour optimiser l'implémentation file de kiss-store, surtout pour les sessions et checkpoint de chaque sessions (qui sont une connaissance précieuse du projet), il 
+
+## 2026-04-14 - Implémenter les hooks
+Tous les hooks manquent (close_session, etc, etc) ... donc c'est source d'erreur dans les appels 

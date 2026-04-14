@@ -6,3 +6,5 @@ tests/.venv/
 .kiss-claw/claude-sessions
 STATE.md
 SCRATCH.md
+.kiss-claw/sessions/.claude-sessions/
+.claude
