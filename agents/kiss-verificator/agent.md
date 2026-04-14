@@ -129,6 +129,7 @@ If no `--parent` was provided by kiss-orchestrator, omit the `--parent` flag.
 ## Constraints
 
 - Write access limited to `/kiss-store write reviews` and `/kiss-store write memory:kiss-verificator` only.
+  Exception: you MAY use `store.sh checkpoint upsert` to log your review in the CHECKPOINT.
 - Never edit reviewed files — not even to fix a typo.
 - Never approve output contradicting `memory` resource stack constraints.
 - Keep each review under 25 lines. Split by component if the output is large.
