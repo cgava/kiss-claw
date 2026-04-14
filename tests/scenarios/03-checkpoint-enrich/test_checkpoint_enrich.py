@@ -128,19 +128,19 @@ def test_classify_blocks():
         assert key in classified, f"Missing key: {key}"
 
     # Table block -> artifacts
-    assert any("|---|---|" in a for a in classified["artifacts"]), \
+    assert "|---|---|" in classified["artifacts"], \
         "Table block should be classified as artifact"
 
     # TASK REPORT -> artifacts
-    assert any("TASK REPORT" in a for a in classified["artifacts"]), \
+    assert "TASK REPORT" in classified["artifacts"], \
         "Task report block should be classified as artifact"
 
     # Verdict / REV- -> artifacts
-    assert any("Verdict" in a or "REV-" in a for a in classified["artifacts"]), \
+    assert "Verdict" in classified["artifacts"] or "REV-" in classified["artifacts"], \
         "Verdict/REV- block should be classified as artifact"
 
     # Decision keyword -> decisions
-    assert any("choisi" in d for d in classified["decisions"]), \
+    assert "choisi" in classified["decisions"], \
         "Decision block should be classified as decision"
 
     # Rationale synthesized from decisions
@@ -148,7 +148,7 @@ def test_classify_blocks():
         "Rationale should be synthesized from decision blocks"
 
     # Caveat keyword -> issues
-    assert any("caveat" in i for i in classified["issues"]), \
+    assert "caveat" in classified["issues"], \
         "Caveat block should be classified as issue"
 
 

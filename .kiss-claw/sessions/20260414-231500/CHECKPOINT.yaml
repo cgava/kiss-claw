@@ -28,13 +28,13 @@ constraints: |
 log:
   - agent: "kiss-orchestrator"
     claude_session: "orchestrator-20260414-231500"
-    timestamp: "2026-04-14T20:20:21Z"
-    task: "Delegation kiss-executor — Phase 2 TDD green (implementation checkpoint-enrich.py)"
+    timestamp: "2026-04-14T20:33:35Z"
+    task: "Delegation kiss-executor — Rework REV-0002 (block scalars + --transcripts-dir)"
     result: "En cours — delegue a kiss-executor"
     children:
       - agent: "kiss-executor"
         claude_session: "executor-20260414-231500"
-        timestamp: "2026-04-14T20:22:58Z"
-        task: "Phase 2 TDD green — implement checkpoint-enrich.py"
-        result: "Created scripts/checkpoint_enrich.py (main implementation), scripts/checkpoint-enrich.py (CLI entry point with hyphen), scripts/__init__.py (empty, for module resolution). All 8 unit tests pass: parse_jsonl, classify_blocks, enrich_step, no_overwrite, dry_run, batch_mode, step_mode, missing_transcript. Runner dry-run also passes (3/3 scenarios)."
+        timestamp: "2026-04-14T20:36:42Z"
+        task: "Rework REV-0002 — block scalars YAML + --transcripts-dir parameter"
+        result: "Changed classify_blocks() to join lists into strings with double-newline separator. Added BlockStyleDumper for YAML block scalar output. Added --transcripts-dir CLI parameter to _find_transcript() and main(). Updated test assertions from list iteration to string containment checks. All 8 tests PASS, runner dry-run PASS (3/3 scenarios)."
         children: []

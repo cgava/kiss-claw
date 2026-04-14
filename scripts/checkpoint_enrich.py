@@ -19,6 +19,23 @@ import yaml
 
 
 # ---------------------------------------------------------------------------
+# YAML block-scalar support
+# ---------------------------------------------------------------------------
+
+class BlockStyleDumper(yaml.Dumper):
+    pass
+
+
+def _str_representer(dumper, data):
+    if '\n' in data:
+        return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
+    return dumper.represent_scalar('tag:yaml.org,2002:str', data)
+
+
+BlockStyleDumper.add_representer(str, _str_representer)
+
+
+# ---------------------------------------------------------------------------
 # Core functions
 # ---------------------------------------------------------------------------
 
@@ -76,7 +93,7 @@ def classify_blocks(blocks):
         blocks: List of text strings.
 
     Returns:
-        Dict with keys: artifacts, decisions, issues, rationale (each a list of strings).
+        Dict with keys: artifacts, decisions, issues, rationale (each a string).
     """
     classified = {
         "artifacts": [],
@@ -109,6 +126,13 @@ def classify_blocks(blocks):
 
     # Rationale is synthesized from decision blocks
     classified["rationale"] = list(classified["decisions"])
+
+    # Join each category into a single string (block scalar friendly)
+    for key in classified:
+        if classified[key]:
+            classified[key] = "\n\n".join(classified[key])
+        else:
+            classified[key] = ""
 
     return classified
 
@@ -156,22 +180,27 @@ def enrich_step(step, blocks):
 # CLI helpers
 # ---------------------------------------------------------------------------
 
-def _find_transcript(step, home_dir, cwd):
+def _find_transcript(step, home_dir, cwd, transcripts_base=None):
     """Locate the .jsonl transcript file for a given step.
 
     Args:
         step: Step dict with claude_session and optional parent_session.
         home_dir: HOME directory.
         cwd: Current working directory (used to derive the slug).
+        transcripts_base: Optional override for the transcript base directory.
+            If provided, used instead of deriving from home_dir + slug.
 
     Returns:
         Path to the .jsonl file, or None if not found.
     """
-    slug = cwd.replace("/", "-").lstrip("-")
     claude_session = step.get("claude_session", "")
     parent_session = step.get("parent_session")
 
-    base = os.path.join(home_dir, ".claude", "projects", slug)
+    if transcripts_base:
+        base = transcripts_base
+    else:
+        slug = cwd.replace("/", "-").lstrip("-")
+        base = os.path.join(home_dir, ".claude", "projects", slug)
 
     if parent_session:
         path = os.path.join(base, parent_session, "subagents", f"{claude_session}.jsonl")
@@ -188,6 +217,8 @@ def main():
     parser.add_argument("session_id", help="Session ID (e.g., 20260413-223433)")
     parser.add_argument("--step", dest="step_id", help="Only process this claude_session step")
     parser.add_argument("--dry-run", action="store_true", help="Print changes without writing")
+    parser.add_argument("--transcripts-dir", dest="transcripts_dir",
+                        help="Override transcript base directory (instead of deriving from HOME)")
     args = parser.parse_args()
 
     # Resolve paths
@@ -216,7 +247,8 @@ def main():
                 continue
 
             # Find transcript
-            transcript_path = _find_transcript(step, home_dir, cwd)
+            transcript_path = _find_transcript(step, home_dir, cwd,
+                                               transcripts_base=args.transcripts_dir)
             if transcript_path is None:
                 print(
                     f"Warning: transcript not found for step {cs}",
@@ -235,16 +267,16 @@ def main():
                 if enriched.get("result") != step.get("result"):
                     print(f"  result: would update ({len(step.get('result', ''))} -> {len(enriched.get('result', ''))} chars)")
                 for field in ("artifacts", "decisions", "issues", "rationale"):
-                    items = enriched.get(field, [])
-                    if items:
-                        print(f"  {field}: {len(items)} item(s)")
+                    value = enriched.get(field, "")
+                    if value:
+                        print(f"  {field}: {len(value)} chars")
             else:
                 steps[i] = enriched
                 modified = True
 
     if modified and not args.dry_run:
         with open(checkpoint_path, "w", encoding="utf-8") as f:
-            yaml.dump(checkpoint, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+            yaml.dump(checkpoint, f, Dumper=BlockStyleDumper, default_flow_style=False, allow_unicode=True, sort_keys=False)
 
     sys.exit(0)
 
