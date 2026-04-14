@@ -15,6 +15,7 @@ kiss-claw/
   scripts/                 — Shell scripts
     init.sh                — Project initialization (creates .kiss-claw/ structure)
     store.sh               — Persistence layer (/kiss-store read/write/list)
+    sync-sessions.sh       — Sync Claude Code sessions to .kiss-claw/claude-sessions/
   hooks/                   — Claude Code lifecycle hooks
     hooks.json             — Hook configuration
     guard.sh               — PreToolUse: protects critical files by owner
@@ -48,6 +49,7 @@ kiss-claw/
       MEMORY.md            — Shared project context for all agents
       ISSUES.md            — Project issues tracking
       SESSIONS.json        — Session registry
+    claude-sessions/       — Synced Claude Code session transcripts (.jsonl)
     sessions/              — Session data (configurable via KISS_CLAW_SESSIONS_DIR)
       20260413-153022/     — Individual session (YYYYMMDD-HHmmss format)
         PLAN.md            — Session plan
@@ -69,6 +71,21 @@ kiss-claw/
 - **Protected files**: PLAN.md, STATE.md, MEMORY.md, REVIEWS.md, INSIGHTS.md, CHECKPOINT.md are owned by specific agents (enforced by guard.sh hook).
 - **Environment variables**: `KISS_CLAW_DIR` (root), `KISS_CLAW_AGENTS_DIR`, `KISS_CLAW_PROJECT_DIR`, `KISS_CLAW_SESSIONS_DIR` (subdirectories), `KISS_CLAW_SESSION` (active session ID).
 - **No external dependencies**: pure shell + Claude agent orchestration. No npm, no pip in production.
+
+## Session sync
+
+```bash
+# Sync Claude sessions to project
+./scripts/sync-sessions.sh
+
+# Sync + clean source sessions
+./scripts/sync-sessions.sh --clean
+
+# Dry-run (show what would be synced/cleaned)
+./scripts/sync-sessions.sh --dry-run
+```
+
+Sessions are copied to `.kiss-claw/claude-sessions/`. Use CHECKPOINT.yaml `claude_session` fields to cross-reference.
 
 ## Running tests
 
