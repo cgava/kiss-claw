@@ -28,13 +28,13 @@ constraints: |
 log:
   - agent: "kiss-orchestrator"
     claude_session: "orchestrator-20260414-231500"
-    timestamp: "2026-04-14T19:54:18Z"
-    task: "Delegation kiss-executor — Phase 1 TDD red (fixtures + tests checkpoint-enrich)"
+    timestamp: "2026-04-14T20:20:21Z"
+    task: "Delegation kiss-executor — Phase 2 TDD green (implementation checkpoint-enrich.py)"
     result: "En cours — delegue a kiss-executor"
     children:
       - agent: "kiss-executor"
         claude_session: "executor-20260414-231500"
-        timestamp: "2026-04-14T19:59:53Z"
-        task: "Phase 1 TDD red — fixtures et tests unitaires checkpoint-enrich"
-        result: "Created 3 fixtures (sample_checkpoint.yaml, sample_transcript.jsonl, expected_enriched.yaml) in tests/fixtures/checkpoint-enrich/ and 1 test file (test_checkpoint_enrich.py) in tests/scenarios/03-checkpoint-enrich/ with 8 unit tests. All 8/8 tests fail as expected (RED phase): 4 ModuleNotFoundError, 4 AssertionError. Dry-run mode passes."
+        timestamp: "2026-04-14T20:22:58Z"
+        task: "Phase 2 TDD green — implement checkpoint-enrich.py"
+        result: "Created scripts/checkpoint_enrich.py (main implementation), scripts/checkpoint-enrich.py (CLI entry point with hyphen), scripts/__init__.py (empty, for module resolution). All 8 unit tests pass: parse_jsonl, classify_blocks, enrich_step, no_overwrite, dry_run, batch_mode, step_mode, missing_transcript. Runner dry-run also passes (3/3 scenarios)."
         children: []
