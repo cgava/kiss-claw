@@ -280,6 +280,12 @@ def run_scenario(
     last_result = None
     total_start = time.time()
 
+    # If scenario has any "resume" steps, force session persistence on "prompt" steps
+    has_resume_steps = any(
+        s.get("action", {}).get("type") == "resume"
+        for s in scenario.get("steps", [])
+    )
+
     # Variables for interpolation
     variables = {
         "repo_root": repo_root,
@@ -361,6 +367,9 @@ def run_scenario(
         )
 
         if action_type == "prompt":
+            # Force session persistence if scenario has resume steps
+            if has_resume_steps:
+                invoke_kwargs["session_persistence"] = True
             result = invoke(content, **invoke_kwargs)
             # Capture session_id from first prompt
             if result.session_id:
