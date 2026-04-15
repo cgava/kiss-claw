@@ -183,10 +183,19 @@ def enrich_step(step, blocks):
 # ---------------------------------------------------------------------------
 
 def _iter_steps(log):
-    """Recursively yield (parent_list, index, step) for all steps including children."""
-    for log_entry in log:
+    """Recursively yield (parent_list, index, step) for all steps including children.
+
+    Supports two CHECKPOINT formats:
+    - Flat: log entries ARE the steps (have claude_session directly)
+    - Nested: log entries contain a 'steps' list
+    """
+    for i, log_entry in enumerate(log):
         steps = log_entry.get("steps", [])
-        yield from _iter_steps_recursive(steps)
+        if steps:
+            yield from _iter_steps_recursive(steps)
+        elif log_entry.get("claude_session"):
+            # Flat format: log entry is itself a step
+            yield log, i, log_entry
 
 
 def _iter_steps_recursive(steps):

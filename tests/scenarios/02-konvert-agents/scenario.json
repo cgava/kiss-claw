@@ -1,0 +1,174 @@
+{
+  "name": "02-konvert-agents",
+  "description": "Integration test: orchestrator INIT -> plan -> executor delegation",
+
+  "agent": {
+    "model": "sonnet",
+    "effort": "medium",
+    "max_turns": 0,
+    "timeout_per_step": 300,
+    "extra_flags": [
+      "--plugin-dir",
+      "{{repo_root}}"
+    ]
+  },
+
+  "test": {
+    "workspace": "tempdir",
+    "debug_file": true,
+    "cleanup_on_success": false
+  },
+
+  "steps": [
+    {
+      "id": "start",
+      "description": "Launch orchestrator with konvert project context",
+      "action": {
+        "type": "prompt",
+        "content": "Use the kiss-claw agent workflow. Start by invoking /kiss-claw:kiss-orchestrator to plan and coordinate all work.\n\nVoici la directive complete du projet konvert, en 6 phases :\n\nPhase 1 — Analyse et Planification\nAnalyser les besoins : creer un script shell `konvert.sh` qui convertit des fichiers Markdown (.md) en HTML.\nLe script doit accepter un fichier en argument et produire le HTML correspondant sur stdout.\nRediger un plan structure avec les etapes de chaque phase.\n\nPhase 2 — Implementation du script konvert.sh\nImplementer `konvert.sh` en bash pur (pas de dependances externes comme pandoc).\nLe script doit gerer au minimum : titres (h1-h3), paragraphes, texte en gras et italique, listes non ordonnees, et blocs de code.\nLe script doit etre executable (chmod +x).\n\nPhase 3 — Tests\nCreer `test_konvert.sh`, un script de tests qui verifie le bon fonctionnement de konvert.sh.\nLes tests doivent couvrir chaque fonctionnalite implementee (titres, paragraphes, gras, italique, listes, code).\nLe script de test doit etre executable et retourner un code de sortie 0 si tous les tests passent.\n\nPhase 4 — Verification et Revue\nVerifier que konvert.sh et test_konvert.sh fonctionnent correctement.\nExecuter les tests et confirmer qu'ils passent.\nDocumenter les resultats de la revue.\n\nPhase 5 — Amelioration\nIdentifier des ameliorations possibles (robustesse, cas limites, lisibilite du code).\nDocumenter les insights et recommandations.\n\nPhase 6 — Livraison\nConfirmer que tous les artefacts sont en place :\n- konvert.sh (executable)\n- test_konvert.sh (executable)\n- Plan documente\n- Revue documentee\n"
+      },
+      "expect": [
+        {
+          "type": "output_matches",
+          "pattern": "(?i)(what are you building|question 1|que construi|projet|project|plan)",
+          "description": "Agent asks first INIT question or starts planning"
+        }
+      ],
+      "on_failure": "abort"
+    },
+    {
+      "id": "init-q1-answer",
+      "description": "Answer INIT question 1",
+      "action": {
+        "type": "resume",
+        "content": "Building a konvert.sh script that converts Markdown to HTML. Accept all defaults and move to next steps."
+      },
+      "expect": [
+        {
+          "type": "output_matches",
+          "pattern": "(?i)(phase|milestone|question|jalons|etape|plan|proceed|contrainte|constraint)",
+          "description": "Agent asks about phases/milestones or proceeds"
+        }
+      ],
+      "on_failure": "continue"
+    },
+    {
+      "id": "init-q2-answer",
+      "description": "Answer INIT question 2",
+      "action": {
+        "type": "resume",
+        "content": "Phase 1: parser, Phase 2: CLI script, Phase 3: tests, Phase 4: review, Phase 5: improvements, Phase 6: delivery. Proceed."
+      },
+      "expect": [
+        {
+          "type": "output_matches",
+          "pattern": "(?i)(constraint|non.?goal|question|contrainte|proceed|plan|ready)",
+          "description": "Agent asks about constraints or is ready to proceed"
+        }
+      ],
+      "on_failure": "continue"
+    },
+    {
+      "id": "init-q3-answer",
+      "description": "Answer INIT question 3 and confirm plan",
+      "action": {
+        "type": "resume",
+        "content": "No external dependencies, bash only, no pandoc. Proceed with the plan. Execute all phases."
+      },
+      "expect": [
+        {
+          "type": "output_matches",
+          "pattern": "(?i)(proceed|plan|phase|ready|executor|delegat|implement)",
+          "description": "Agent confirms plan and is ready to proceed"
+        }
+      ],
+      "on_failure": "continue"
+    },
+    {
+      "id": "delegation",
+      "description": "Let agent work through delegation (long-running)",
+      "action": {
+        "type": "resume",
+        "content": "Yes, proceed. Execute all phases now.",
+        "timeout": 18000
+      },
+      "expect": [
+        {
+          "type": "file_exists",
+          "path": "konvert.sh",
+          "description": "konvert.sh script created"
+        },
+        {
+          "type": "file_exists",
+          "path": "test_konvert.sh",
+          "description": "test_konvert.sh script created"
+        }
+      ],
+      "on_failure": "abort"
+    }
+  ],
+
+  "final_assertions": [
+    {
+      "type": "exit_code",
+      "value": 0,
+      "description": "Last step exited cleanly",
+      "required": true
+    },
+    {
+      "type": "file_exists",
+      "path": "konvert.sh",
+      "description": "konvert.sh exists",
+      "required": true
+    },
+    {
+      "type": "file_executable",
+      "path": "konvert.sh",
+      "description": "konvert.sh is executable",
+      "required": true
+    },
+    {
+      "type": "file_exists",
+      "path": "test_konvert.sh",
+      "description": "test_konvert.sh exists",
+      "required": true
+    },
+    {
+      "type": "file_executable",
+      "path": "test_konvert.sh",
+      "description": "test_konvert.sh is executable",
+      "required": true
+    },
+    {
+      "type": "file_exists",
+      "path": ".kiss-claw/sessions/*/PLAN.md",
+      "description": "PLAN.md created in session directory",
+      "required": true
+    },
+    {
+      "type": "file_contains",
+      "path": ".kiss-claw/sessions/*/PLAN.md",
+      "pattern": "(?i)(phase|etape|étape)",
+      "description": "PLAN.md contains phase information",
+      "required": true
+    },
+    {
+      "type": "file_exists",
+      "path": ".kiss-claw/sessions/*/STATE.md",
+      "description": "STATE.md created in session directory",
+      "required": true
+    },
+    {
+      "type": "file_exists",
+      "path": ".kiss-claw/sessions/*/REVIEWS.md",
+      "description": "REVIEWS.md exists",
+      "required": false
+    },
+    {
+      "type": "file_exists",
+      "path": ".kiss-claw/sessions/*/CHECKPOINT.yaml",
+      "description": "CHECKPOINT.yaml exists",
+      "required": false
+    }
+  ]
+}

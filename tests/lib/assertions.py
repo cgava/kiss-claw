@@ -1,10 +1,11 @@
 """assertions.py — Assertion helpers for kiss-claw test scenarios.
 
 All functions raise AssertionError with a clear message on failure.
-Stdlib only: re, json, pathlib.
+Stdlib only: re, json, os, pathlib.
 """
 
 import json
+import os
 import re
 from pathlib import Path
 
@@ -69,6 +70,43 @@ def assert_stdout_contains(result, pattern):
             f"stdout does not match pattern: {pattern!r}\n"
             f"  stdout preview: {preview!r}"
         )
+
+
+def assert_file_executable(path):
+    """Check that a file exists and is executable.
+
+    Args:
+        path: str or Path to the file.
+    """
+    p = Path(path)
+    if not p.exists():
+        raise AssertionError(f"File does not exist: {p}")
+    if not p.is_file():
+        raise AssertionError(f"Path exists but is not a file: {p}")
+    if not os.access(str(p), os.X_OK):
+        raise AssertionError(f"File exists but is not executable: {p}")
+
+
+def assert_glob_exists(base_dir, pattern):
+    """Check that at least one file matches a glob pattern under base_dir.
+
+    Args:
+        base_dir: str or Path to the base directory to search from.
+        pattern: Glob pattern string (e.g., ".kiss-claw/sessions/*/PLAN.md").
+
+    Returns:
+        Path to the first matching file (for further assertions).
+    """
+    base = Path(base_dir)
+    if not base.is_dir():
+        raise AssertionError(f"Base directory does not exist: {base}")
+    matches = sorted(base.glob(pattern))
+    if not matches:
+        raise AssertionError(
+            f"No files match glob pattern: {pattern}\n"
+            f"  base_dir: {base}"
+        )
+    return matches[0]
 
 
 def assert_json_field(result, field, expected):
