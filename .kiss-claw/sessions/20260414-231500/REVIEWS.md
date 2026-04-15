@@ -33,3 +33,19 @@ Implementation of `scripts/checkpoint_enrich.py` (~250 lines) covering JSONL par
 
 **For kiss-orchestrator**
 Proceed to next step. Minor format issue can be addressed in a follow-up refactor phase.
+
+### REV-0003
+
+- **date**     : 2026-04-14
+- **subject**  : kiss-executor task — Phase 4 bug fixes: slug mismatch, children recursion, block scalar
+- **verdict**  : approved-with-notes
+
+**Summary**
+Bug 1 (slug mismatch) fixed by reading `claude_sessions_path` from SESSIONS.json, computed correctly in `init.sh` (keeps leading dash). Bugs 2 (children recursion) and 3 (block scalar trailing whitespace) confirmed present in current code. One minor issue: fallback paths still contain the buggy `.lstrip("-")`.
+
+**Issues**
+- [minor] `_find_transcript` line 221 and `main()` line 268 both still use `.lstrip("-")` in their fallback slug derivation. While these fallbacks are now rarely reached (SESSIONS.json provides the correct path), they remain buggy and should be fixed for consistency: remove `.lstrip("-")` or remove the dead fallback in `_find_transcript` entirely since `transcripts_base` is always set from `main()`.
+- [minor] `init.sh` line 328-332: inline Python uses shell variable interpolation (`'$claude_sessions_path'`) inside a Python string. Paths with single quotes would break. Low risk for typical paths but fragile.
+
+**For kiss-orchestrator**
+Proceed to next step. The `.lstrip("-")` remnants are dead-code-adjacent and non-blocking.

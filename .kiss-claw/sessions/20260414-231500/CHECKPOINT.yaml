@@ -28,13 +28,13 @@ constraints: |
 log:
   - agent: "kiss-orchestrator"
     claude_session: "orchestrator-20260414-231500"
-    timestamp: "2026-04-14T20:58:03Z"
-    task: "Delegation kiss-executor — Fix 3 bugs (slug, children, block scalar)"
-    result: "En cours — delegue a kiss-executor"
+    timestamp: "2026-04-15T06:04:23Z"
+    task: "Delegation kiss-verificator — Review Phase 5 (AC-9 CHECKPOINT enrichment)"
+    result: "En cours — delegue a kiss-verificator"
     children:
       - agent: "kiss-executor"
         claude_session: "executor-20260414-231500"
-        timestamp: "2026-04-14T21:06:32Z"
-        task: "Fix 3 bugs — slug mismatch (claude_sessions_path in SESSIONS.json), children recursion, block scalar quoting"
-        result: "All 3 bugs fixed: (1) claude_sessions_path added to SESSIONS.json + init.sh updated to compute it on init, (2) _iter_steps/_iter_steps_recursive already implemented for children recursion, (3) _str_representer already strips trailing whitespace. Indentation fixed in main() for loop. All 8 unit tests pass. Dry-run on session 082706 works without --transcripts-dir."
+        timestamp: "2026-04-15T06:03:55Z"
+        task: "Phase 5 — Extend 02-konvert-agents with AC-9 CHECKPOINT enrichment check"
+        result: "Added AC-9 soft criterion to test_konvert_agents.py. Checks for CHECKPOINT.yaml in session dirs (glob), flat layout fallback, and enrichment fields (artifacts/decisions/issues/rationale). Dry-run skip added. All 3 scenarios pass dry-run. No caveats."
         children: []

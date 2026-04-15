@@ -189,8 +189,44 @@
     {
       "id": "20260414-231500",
       "created": "2026-04-14T23:15:00",
-      "status": "in_progress",
-      "title": "Implementation /kiss-checkpoint-enrich"
+      "status": "done",
+      "title": "Implementation /kiss-enrich-checkpoint",
+      "closed": "2026-04-15T09:00:00",
+      "summary": {
+        "need": "Les CHECKPOINT.yaml sont trop compacts (task/result monolignes) pour servir de memoire projet exploitable. Perte du contenu riche des sessions Claude. Objectif : memoire projet auto-suffisante sans dependance aux transcripts bruts.",
+        "outcome": "Script enrich_checkpoint.py implemente (TDD, 8 tests, block scalars YAML). Skill /kiss-enrich-checkpoint cree. 4 agents instrumentes pour enrichir automatiquement apres upsert. 4 CHECKPOINTs historiques enrichis. Documentation Diataxis mise a jour. Cleanup dead code (backfill-checkpoint.sh, checkpoint-enrich.py wrapper). Renommage coherent verb+complement.",
+        "files_changed": [
+          "scripts/enrich_checkpoint.py",
+          "scripts/__init__.py",
+          "scripts/init.sh",
+          "commands/kiss-enrich-checkpoint.md",
+          "agents/kiss-orchestrator/agent.md",
+          "agents/kiss-executor/agent.md",
+          "agents/kiss-verificator/agent.md",
+          "agents/kiss-improver/agent.md",
+          "tests/scenarios/03-enrich-checkpoint/test_enrich_checkpoint.py",
+          "tests/fixtures/enrich-checkpoint/",
+          "tests/scenarios/02-konvert-agents/test_konvert_agents.py",
+          "tests/lib/report.py",
+          "docs/help/fr/how-to/utiliser-checkpoints.md",
+          "docs/help/fr/reference/skills-commandes.md",
+          "CLAUDE.md"
+        ],
+        "decisions": [
+          "TDD red/green plutot que implementation-first",
+          "Block scalars YAML (|) pour preserver le markdown original",
+          "claude_sessions_path dans SESSIONS.json plutot que derivation slug",
+          "Confirmation interactive du chemin dans init.sh",
+          "Renommage checkpoint-enrich -> enrich-checkpoint (verb+complement)",
+          "Suppression backfill-checkpoint.sh (dead code, remplace par store.sh upsert)",
+          "AC-9 CHECKPOINT en critere SOFT dans test integration"
+        ],
+        "next": [
+          "ISSUE: scenario 02-konvert-agents echoue — orchestrator pose 3 questions INIT interactives mais claude -p est non-interactif (end_turn apres 15 turns sans reponse)",
+          "Enrichir les CHECKPOINTs restants (session 213000, 223433 deja fait)",
+          "Tester enrichissement automatique en conditions reelles (nouvelle session avec les 4 agents)"
+        ]
+      }
     }
   ],
   "claude_sessions_path": "/home/omc/.claude/projects/-home-omc-workspace-kiss-claw"

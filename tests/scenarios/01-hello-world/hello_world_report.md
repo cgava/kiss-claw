@@ -3,9 +3,10 @@
 | Field | Value |
 |-------|-------|
 | Status | **PASS** |
-| Date | 2026-04-11T12:58:32Z |
-| Duration | 0.0s |
-| Session ID | `dry-run-000` |
+| Date | 2026-04-15T06:41:57Z |
+| Duration | 6.1s |
+| Session ID | `271788ee-afce-48d9-ad59-8cf335dca027` |
+| Cost | $0.05214 |
 
 ## Environment
 
@@ -90,6 +91,9 @@
 | kiss-verificator:ac527a6 | kiss-verificator | n/a | done |
 | kiss-executor:a33b3ab | kiss-executor | 56s | done |
 | kiss-verificator:a56cb3c | kiss-verificator | 37s | done |
+| Explore:aca7c62 | Explore | n/a | done |
+| kiss-executor:a066ac3 | kiss-executor | 57s | done |
+| kiss-verificator:a9db67f | kiss-verificator | 59s | done |
 
 ## Artifacts Produced
 
@@ -103,8 +107,21 @@ _No workspace path provided._
 | AC-2 | PASS | stdout is non-empty |
 | AC-3 | PASS | JSON parsed with 'result' key |
 | AC-4 | PASS | is_error is False |
-| AC-5 | PASS | Response contains 'hello' — SKIP (dry-run) |
+| AC-5 | PASS | Response contains 'hello' |
 | AC-6 | PASS | session_id is non-empty string |
+
+## Consumption
+
+| Metric | Value |
+|--------|-------|
+| Duration (API) | 2.3s (0.0min) |
+| Duration (API calls only) | 2.2s |
+| Turns | 1 |
+| Total cost | $0.0521 |
+| Stop reason | end_turn |
+| Input tokens | 10 |
+| Cache (create/read) | 41,540 / 0 |
+| Output tokens | 41 |
 
 ## Diagnosis
 

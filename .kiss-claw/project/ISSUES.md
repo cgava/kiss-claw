@@ -36,3 +36,10 @@ Pour optimiser l'implémentation file de kiss-store, surtout pour les sessions e
 
 ## 2026-04-14 - Implémenter les hooks
 Tous les hooks manquent (close_session, etc, etc) ... donc c'est source d'erreur dans les appels 
+
+## 2026-04-15 - oublis trop réguliers
+L'agent orchestrator oublie systématiquement de mettre à jour le plan, et régulièrement de commiter
+
+Faire init.sh réentrant (détecte l'état du dossier et fait une mise à jour si ça va pas) -> dans ce cas, ne faut-il pas envisager une autre stack ?
+
+Reste toujours à recréer les sessions, pour faire le log de l'évolution du projet

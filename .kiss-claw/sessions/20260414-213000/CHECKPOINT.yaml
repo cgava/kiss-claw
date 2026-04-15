@@ -1,0 +1,45 @@
+session: "20260414-213000"
+created: "2026-04-14T17:05:03"
+
+need:
+why: |
+  Les CHECKPOINT.yaml actuels sont trop compactes (task monoligne + result resume)
+  pour permettre des retex retrospectifs ou du transfert de contexte inter-agents.
+  On perd toute la richesse des echanges (tableaux de synthese, decisions argumentees,
+  messages verbatim). Objectif : memoire projet auto-suffisante sans dependance aux
+  sessions Claude brutes.
+  Categorie : dette_technique
+raw: |
+  Les fichiers CHECKPOINT.yaml de chaque session permettent de synthetiser les
+  differentes actions des agents pour permettre aux agents de se transferer un
+  contexte de plan. Ils sont egalement la memoire du projet. Quand je vois le
+  travail fait par les agents, encore disponible dans les sessions Claude, je
+  pense que ce fichier checkpoint est bien trop resume. J aimerais avoir au moins
+  le contenu verbatim des messages et tableaux de syntheses produits par les agents.
+  C est trop compacte pour pouvoir en tirer de la valeur quand on va analyser
+  retroactivement l historique du projet pour faire des retex.
+elicited: |
+  - Recherche etat de l art sur extraction prompts pour feedback loop agents
+  - Proposer un format enrichi sur la premiere session comme prototype
+  - Specifier un skill dedie pour automatiser l extraction depuis sessions Claude
+  - Format flexible : YAML, markdown embarque, ou mix selon ce qui preserve le mieux
+  - Shell ou Python acceptes pour l implementation
+constraints: |
+  - Shell ou Python (pas de dependances externes)
+  - Format doit preserver tableaux et markdown sans perte
+  - Le skill doit etre invocable par les agents automatiquement
+  - Specification seulement dans cette session, implementation en session suivante
+
+log:
+  - agent: "kiss-orchestrator"
+    claude_session: "orchestrator-20260414-213000"
+    timestamp: "2026-04-14T18:27:41Z"
+    task: "Phase 3 — Specification skill /kiss-checkpoint-enrich + adaptation agents"
+    result: "Specification complete : skill checkpoint-enrich.py (--step mode agent, batch mode post-session), adaptation 4 agents (upsert minimal + enrich auto), 6 fichiers a livrer en session suivante"
+    children: []
+  - agent: "kiss-executor"
+    claude_session: "executor-20260414-213000"
+    timestamp: "2026-04-14T18:22:54Z"
+    task: "Enrichir CHECKPOINT session 20260413-223433 depuis transcripts Claude — extraction verbatim des delegations, task reports, review verdicts, et status banners de 16 sessions agent + 1 session parent"
+    result: "CHECKPOINT.yaml enrichi de 205 lignes a 1121 lignes. 16 steps across 6 phases + session summary, chacun avec task/rationale/result/artifacts/decisions/issues. Artifacts contiennent les task reports verbatim, review verdicts avec tables de verification, status banners, et mapping tables. YAML valide. Fichiers temp nettoyes."
+    children: []
