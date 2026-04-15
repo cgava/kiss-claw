@@ -37,7 +37,7 @@
         ],
         "decisions": [
           "Structure 3-tier (agents/project/sessions) plutôt que flat",
-          "Variables d env configurables (KISS_CLAW_AGENTS_DIR, KISS_CLAW_PROJECT_DIR, KISS_CLAW_SESSIONS_DIR)",
+          "Variables d env configurables",
           "Session ID format YYYYMMDD-HHmmss",
           "KISS_CLAW_SESSION requis pour ressources session-scoped",
           "Migration automatique v6→v7 via init.sh --migrate",
@@ -56,8 +56,8 @@
       "title": "CHECKPOINT.yaml + Journal évolutions projet",
       "closed": "2026-04-14T09:00:00",
       "summary": {
-        "need": "Implémenter un système de traçabilité session-scoped (CHECKPOINT.yaml) avec suivi hiérarchique des appels agents/sub-agents, descriptions verbatim, et chaîne complète SESSIONS.json → CHECKPOINT.yaml → sessions Claude. Enrichir SESSIONS.json comme journal grosse maille des évolutions projet. Script de sync des sessions Claude.",
-        "outcome": "store.sh étendu de 196 à 481 lignes avec checkpoint init-need et upsert (par claude_session, avec --parent pour hiérarchie). 4 agents instrumentés pour logger automatiquement dans CHECKPOINT. Protocole close session ajouté à l orchestrator. sync-sessions.sh créé (rsync, --dry-run, --clean). backfill-checkpoint.sh comme transition temporaire.",
+        "need": "Implémenter un système de traçabilité session-scoped.",
+        "outcome": "store.sh étendu avec checkpoint init-need et upsert. 4 agents instrumentés. sync-sessions.sh créé.",
         "files_changed": [
           ".gitignore",
           "CLAUDE.md",
@@ -70,16 +70,12 @@
           "scripts/sync-sessions.sh"
         ],
         "decisions": [
-          "Format YAML plutôt que JSON pour lisibilité multi-ligne",
-          "store.sh = seul point d écriture CHECKPOINT (upsert par claude_session)",
-          "Placeholder session ID (<agent>-$KISS_CLAW_SESSION) en attendant sync",
-          "Script backfill temporaire pour bootstrapper la session courante",
-          "claude-sessions/ séparé des sessions kiss-claw"
+          "Format YAML plutôt que JSON",
+          "store.sh = seul point d écriture CHECKPOINT",
+          "Placeholder session ID en attendant sync"
         ],
         "next": [
-          "Tester le workflow complet en conditions réelles (nouvelle session)",
-          "Implémenter la résolution automatique des claude_session IDs",
-          "Nettoyer backfill-checkpoint.sh quand le mécanisme natif est rodé"
+          "Tester le workflow complet en conditions réelles"
         ]
       }
     },
@@ -90,8 +86,8 @@
       "title": "Documentation Diátaxis kiss-claw",
       "closed": "2026-04-14T15:30:00",
       "summary": {
-        "need": "Dette documentaire — kiss-claw a évolué plus vite que sa documentation.",
-        "outcome": "Documentation Diátaxis complète en français dans docs/help/fr/. Skill /kiss-help créé. Hook agent-suggest.sh enrichi.",
+        "need": "Dette documentaire.",
+        "outcome": "Documentation Diátaxis complète en français dans docs/help/fr/. Skill /kiss-help créé.",
         "files_changed": [
           "docs/help/fr/ (25 fichiers)",
           "commands/kiss-help.md",
@@ -116,8 +112,8 @@
       "title": "Détection runtime claude_session ID dans les agents",
       "closed": "2026-04-14T18:10:00",
       "summary": {
-        "need": "Les CHECKPOINT.yaml utilisaient des placeholders au lieu des vrais IDs de session Claude. Impossible de relier les entrées du CHECKPOINT aux transcripts réels. Les agents ne savaient pas détecter leur propre claude_session ID au runtime.",
-        "outcome": "Mécanisme de détection runtime implémenté dans les 4 agents : ls -t sur .jsonl (parent) et .meta.json (subagent) avec fallback. Bug de dérivation du slug corrigé (sed s|^-|| supprimait le mauvais tiret). PARENT_CLAUDE_SESSION intégré dans les délégations orchestrator → subagents.",
+        "need": "Les CHECKPOINT.yaml utilisaient des placeholders au lieu des vrais IDs.",
+        "outcome": "Mécanisme de détection runtime implémenté dans les 4 agents.",
         "files_changed": [
           "agents/kiss-orchestrator/agent.md",
           "agents/kiss-executor/agent.md",
@@ -127,13 +123,12 @@
           "scripts/sync-sessions.sh"
         ],
         "decisions": [
-          "Détection via ls -t sur fichiers .jsonl/.meta.json plutôt que variable d environnement",
-          "Fallback <agent>-$KISS_CLAW_SESSION si détection échoue",
-          "Slug dérivé de $PWD via sed sans suppression du tiret initial"
+          "Détection via ls -t sur fichiers .jsonl/.meta.json",
+          "Fallback <agent>-$KISS_CLAW_SESSION",
+          "Slug dérivé de $PWD via sed"
         ],
         "next": [
-          "Backfill CHECKPOINT.yaml des sessions 082706 et 143500 (Phase 1 non exécutée)",
-          "Tester la détection runtime en conditions réelles (nouvelle session avec les 4 agents)"
+          "Backfill CHECKPOINT.yaml des sessions 082706 et 143500"
         ]
       }
     },
@@ -144,15 +139,15 @@
       "title": "Backfill CHECKPOINT session 170500 + close session",
       "closed": "2026-04-14T18:13:00",
       "summary": {
-        "need": "Le CHECKPOINT.yaml de la session 170500 était resté au format plat avec des placeholders claude_session, car cette session implémentait justement les instructions de détection runtime.",
-        "outcome": "CHECKPOINT.yaml de 170500 entièrement reconstruit au format de référence : claude_session au header (5e57d2da), log structuré par phases, 4 vrais IDs subagents mappés, hiérarchie parent/children. Session 170500 fermée avec résumé complet dans SESSIONS.json.",
+        "need": "CHECKPOINT.yaml de 170500 resté au format plat avec placeholders.",
+        "outcome": "CHECKPOINT.yaml reconstruit au format de référence.",
         "files_changed": [
           ".kiss-claw/sessions/20260414-170500/CHECKPOINT.yaml",
           ".kiss-claw/project/SESSIONS.json"
         ],
         "decisions": [
-          "Écriture directe du CHECKPOINT plutôt que upsert itératif (store.sh ne supporte pas la réécriture complète)",
-          "Mapping des IDs Claude via ls sur ~/.claude/projects/ et cross-référence des .meta.json"
+          "Écriture directe plutôt que upsert itératif",
+          "Mapping des IDs Claude via ls"
         ],
         "next": [
           "none"
@@ -166,23 +161,21 @@
       "title": "Enrichissement CHECKPOINT.yaml — mémoire projet auto-suffisante",
       "closed": "2026-04-14T22:15:00",
       "summary": {
-        "need": "Les CHECKPOINT.yaml sont trop compactes (task/result monolignes) pour servir de memoire projet exploitable. Perte du contenu riche des sessions Claude (tableaux, verdicts, decisions argumentees).",
-        "outcome": "Recherche etat de l'art (Reflexion, Retroformer, LangGraph). Format enrichi defini et valide : YAML + blocs Markdown avec 6 champs par step (task, rationale, result, artifacts, decisions, issues). Prototype sur session 223433 : 205 -> 1121 lignes (5.5x). Spec du skill /kiss-checkpoint-enrich ecrite dans docs/SPEC-checkpoint-enrich.md.",
+        "need": "CHECKPOINT.yaml trop compacts pour servir de mémoire projet.",
+        "outcome": "Format enrichi défini et validé. Prototype sur session 223433. Spec écrite.",
         "files_changed": [
           ".kiss-claw/sessions/20260413-223433/CHECKPOINT.yaml",
           "docs/SPEC-checkpoint-enrich.md"
         ],
         "decisions": [
-          "YAML + Markdown | blocks comme format (meilleur compromis structure/lisibilite LLM, +10-15% vs JSON)",
-          "6 champs par step : task, rationale, result, artifacts, decisions, issues",
-          "Python avec pyyaml via .venv du plugin (pas de fallback si absent)",
-          "Skill en 2 temps : upsert minimal puis enrichissement automatique",
-          "Enrichissement des 4 autres CHECKPOINTs reporte a session suivante"
+          "YAML + Markdown | blocks",
+          "6 champs par step",
+          "Python avec pyyaml via .venv"
         ],
         "next": [
-          "Implementer scripts/checkpoint-enrich.py + commands/kiss-checkpoint-enrich.md",
-          "Modifier les 4 agent.md pour invoquer le skill apres upsert",
-          "Enrichir les 4 CHECKPOINTs restants (082706, 143500, 170500, 180629)"
+          "Implémenter scripts/checkpoint-enrich.py",
+          "Modifier les 4 agent.md",
+          "Enrichir les 4 CHECKPOINTs restants"
         ]
       }
     },
@@ -193,40 +186,35 @@
       "title": "Implementation /kiss-enrich-checkpoint",
       "closed": "2026-04-15T09:00:00",
       "summary": {
-        "need": "Les CHECKPOINT.yaml sont trop compacts (task/result monolignes) pour servir de memoire projet exploitable. Perte du contenu riche des sessions Claude. Objectif : memoire projet auto-suffisante sans dependance aux transcripts bruts.",
-        "outcome": "Script enrich_checkpoint.py implemente (TDD, 8 tests, block scalars YAML). Skill /kiss-enrich-checkpoint cree. 4 agents instrumentes pour enrichir automatiquement apres upsert. 4 CHECKPOINTs historiques enrichis. Documentation Diataxis mise a jour. Cleanup dead code (backfill-checkpoint.sh, checkpoint-enrich.py wrapper). Renommage coherent verb+complement.",
+        "need": "CHECKPOINT.yaml trop compacts. Objectif : mémoire projet auto-suffisante.",
+        "outcome": "Script enrich_checkpoint.py implémenté (TDD, 8 tests). Skill créé. 4 agents instrumentés. 4 CHECKPOINTs enrichis. Documentation mise à jour.",
         "files_changed": [
           "scripts/enrich_checkpoint.py",
           "scripts/__init__.py",
           "scripts/init.sh",
           "commands/kiss-enrich-checkpoint.md",
-          "agents/kiss-orchestrator/agent.md",
-          "agents/kiss-executor/agent.md",
-          "agents/kiss-verificator/agent.md",
-          "agents/kiss-improver/agent.md",
-          "tests/scenarios/03-enrich-checkpoint/test_enrich_checkpoint.py",
+          "agents/*.md",
+          "tests/scenarios/03-enrich-checkpoint/",
           "tests/fixtures/enrich-checkpoint/",
-          "tests/scenarios/02-konvert-agents/test_konvert_agents.py",
-          "tests/lib/report.py",
-          "docs/help/fr/how-to/utiliser-checkpoints.md",
-          "docs/help/fr/reference/skills-commandes.md",
-          "CLAUDE.md"
+          "docs/help/fr/"
         ],
         "decisions": [
-          "TDD red/green plutot que implementation-first",
-          "Block scalars YAML (|) pour preserver le markdown original",
-          "claude_sessions_path dans SESSIONS.json plutot que derivation slug",
-          "Confirmation interactive du chemin dans init.sh",
-          "Renommage checkpoint-enrich -> enrich-checkpoint (verb+complement)",
-          "Suppression backfill-checkpoint.sh (dead code, remplace par store.sh upsert)",
-          "AC-9 CHECKPOINT en critere SOFT dans test integration"
+          "TDD red/green",
+          "Block scalars YAML (|)",
+          "claude_sessions_path dans SESSIONS.json",
+          "Renommage checkpoint-enrich -> enrich-checkpoint"
         ],
         "next": [
-          "ISSUE: scenario 02-konvert-agents echoue — orchestrator pose 3 questions INIT interactives mais claude -p est non-interactif (end_turn apres 15 turns sans reponse)",
-          "Enrichir les CHECKPOINTs restants (session 213000, 223433 deja fait)",
-          "Tester enrichissement automatique en conditions reelles (nouvelle session avec les 4 agents)"
+          "ISSUE: 02-konvert-agents echoue (INIT interactif vs claude -p non-interactif)",
+          "Tester enrichissement automatique en conditions réelles"
         ]
       }
+    },
+    {
+      "id": "20260415-113650",
+      "created": "2026-04-15T11:36:50",
+      "status": "in_progress",
+      "title": "Test interactif agents conversationnels"
     }
   ],
   "claude_sessions_path": "/home/omc/.claude/projects/-home-omc-workspace-kiss-claw"

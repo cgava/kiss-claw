@@ -1,0 +1,29 @@
+session: "20260415-113650"
+created: "2026-04-15T10:34:39"
+
+need:
+why: |
+  Bug structurel : les scenarios de test (02-konvert-agents) ne fonctionnent pas en vrai. L orchestrateur kiss-claw pose 3 questions INIT interactives mais claude -p est non-interactif (end_turn apres 15 turns sans reponse). Les tests ne valident rien aujourd hui, ils ne tournent qu en --dry-run.
+  Categorie : bug
+raw: |
+  Les scenarios de test ne fonctionnent pas et n ont ete testes qu en mode --dry-run.
+  L agent initialise la session mais s arrete apres le INIT — pas de PLAN.md genere, pas de delegation.
+  Il faut un framework de test interactif avec scenarios structures (JSON/YAML), debug output par defaut,
+  et potentiellement utiliser claude --resume pour gerer les interactions multi-tours.
+elicited: |
+  Recherche etat de l art des tests d agents conversationnels.
+  Design d un format de scenario (sequentiel + alternatives/DAG).
+  Implementation d un runner interactif integre au framework existant.
+  Validation sur 02-konvert-agents en vrai.
+constraints: |
+  Claude CLI via subprocess (pas de SDK, pas d API key).
+  Approche simple d abord, extensible ensuite.
+  Dependances externes envisageables si justifiees par analyse comparative.
+
+log:
+  - agent: "kiss-orchestrator"
+    claude_session: "c120109f-6fd9-4896-a0bf-e683fa639c19"
+    timestamp: "2026-04-15T12:18:44Z"
+    task: "Phase 1 — Recherche etat de l art complete, document de synthese redige"
+    result: "5 recherches paralleles (vocabulaire, formats, outils, creation, code actuel). Document docs/research/260415-agent-interactive-testing-state-of-art.md redige (~450 lignes). Recommandations : format sequentiel + decision tree YAML, --resume chaining, assertions structurelles + regex, human-in-the-loop pour creation scenarios."
+    children: []
