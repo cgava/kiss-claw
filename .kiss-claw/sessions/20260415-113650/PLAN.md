@@ -25,11 +25,12 @@ Rendre les scénarios de test fonctionnels en mode interactif (pas seulement --d
 - [x] Écrire la spec technique (docs/designs/260415-v9-design_interactive_test_runner.md)
 
 ### Phase 3 — Implémentation
-- [ ] Debug output par défaut dans les scénarios de test (option claude --debug-file)
-- [ ] Format de scénario : parser et validateur (scenario_runner.py load_scenario)
-- [ ] Runner interactif : exécution pas-à-pas avec --resume (scenario_runner.py run_scenario)
-- [ ] Adaptateur pour le runner.py existant (intégration dans run(ctx))
-- [ ] Scénario 02-konvert-agents : réécrire scenario.json + refactorer test_konvert_agents.py
+- [x] Debug output par défaut dans les scénarios de test (option claude --debug-file)
+- [x] Format de scénario : parser et validateur (scenario_runner.py load_scenario)
+- [x] Runner interactif : exécution pas-à-pas avec --resume (scenario_runner.py run_scenario)
+- [x] Adaptateur pour le runner.py existant (intégration dans run(ctx))
+- [x] Scénario 02-konvert-agents : réécrire scenario.json + refactorer test_konvert_agents.py
+- [x] Review REV-0001 : approved-with-notes, rework appliqué
 
 ### Phase 4 — Validation
 - [ ] Exécuter 02-konvert-agents en mode --dry-run (valider le runner)

@@ -2,11 +2,10 @@
 
 | Field | Value |
 |-------|-------|
-| Status | **FAIL** |
-| Date | 2026-04-15T06:43:20Z |
-| Duration | 82.6s |
-| Session ID | `5dd59c20-3022-4548-b226-c51434f7bc81` |
-| Cost | $0.28370805 |
+| Status | **PASS** |
+| Date | 2026-04-15T19:27:44Z |
+| Duration | 0.0s |
+| Session ID | `dry-run-000` |
 
 ## Environment
 
@@ -30,32 +29,36 @@ _No OMC mission state found._
 | REVIEWS.md | -- | MISSING |
 | INSIGHTS.md | -- | MISSING |
 
+
+## Scenario Steps
+
+| # | Step | Duration | Status | Detail |
+|---|------|----------|--------|--------|
+| 1 | start | 0.0s | PASS | Launch orchestrator with konvert project context |
+| 2 | init-q1-answer | 0.0s | PASS | Answer INIT question 1 |
+| 3 | init-q2-answer | 0.0s | PASS | Answer INIT question 2 |
+| 4 | init-q3-answer | 0.0s | PASS | Answer INIT question 3 and confirm plan |
+| 5 | delegation | 0.0s | PASS | Let agent work through delegation (long-running) |
+
 ## Acceptance Criteria
 
 | AC | Result | Detail |
 |----|--------|--------|
-| AC-1 | PASS | Exit code is 0 |
-| AC-2 | PASS | JSON response is parseable |
-| AC-3 | FAIL | PLAN.md exists -- not found anywhere |
-| AC-4 | FAIL | STATE.md exists -- not found anywhere |
-| AC-5 | FAIL | konvert.sh exists -- not found |
-| AC-6 | FAIL | test_konvert.sh exists -- not found |
-| AC-7 | FAIL | REVIEWS.md exists -- not found anywhere |
-| AC-8 | PASS | Insights file not found (soft — not required) |
-| AC-9 | PASS | CHECKPOINT.yaml not found (soft — not required) |
-
-## Consumption
-
-| Metric | Value |
-|--------|-------|
-| Duration (API) | 78.6s (1.3min) |
-| Duration (API calls only) | 59.3s |
-| Turns | 15 |
-| Total cost | $0.2837 |
-| Stop reason | end_turn |
-| Input tokens | 16 |
-| Cache (create/read) | 33,717 / 365,621 |
-| Output tokens | 3,169 |
+| STEP-1 | PASS | Step [start]: Launch orchestrator with konvert project context |
+| STEP-2 | PASS | Step [init-q1-answer]: Answer INIT question 1 |
+| STEP-3 | PASS | Step [init-q2-answer]: Answer INIT question 2 |
+| STEP-4 | PASS | Step [init-q3-answer]: Answer INIT question 3 and confirm plan |
+| STEP-5 | PASS | Step [delegation]: Let agent work through delegation (long-running) |
+| FA-1 | PASS | Last step exited cleanly -- SKIP (dry-run) |
+| FA-2 | PASS | konvert.sh exists -- SKIP (dry-run) |
+| FA-3 | PASS | konvert.sh is executable -- SKIP (dry-run) |
+| FA-4 | PASS | test_konvert.sh exists -- SKIP (dry-run) |
+| FA-5 | PASS | test_konvert.sh is executable -- SKIP (dry-run) |
+| FA-6 | PASS | PLAN.md created in session directory -- SKIP (dry-run) |
+| FA-7 | PASS | PLAN.md contains phase information -- SKIP (dry-run) |
+| FA-8 | PASS | STATE.md created in session directory -- SKIP (dry-run) |
+| FA-9 | PASS | REVIEWS.md exists -- SKIP (dry-run) |
+| FA-10 | PASS | CHECKPOINT.yaml exists -- SKIP (dry-run) |
 
 ## Diagnosis
 
@@ -63,5 +66,5 @@ _No diagnosis provided._
 
 ## Workspace
 
-- **Path**: `/tmp/kiss-claw-konvert-1y5f2oyf`
+- **Path**: `(dry-run)`
 - **Preserved**: yes

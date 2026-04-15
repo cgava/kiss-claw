@@ -43,3 +43,7 @@ L'agent orchestrator oublie systématiquement de mettre à jour le plan, et rég
 Faire init.sh réentrant (détecte l'état du dossier et fait une mise à jour si ça va pas) -> dans ce cas, ne faut-il pas envisager une autre stack ?
 
 Reste toujours à recréer les sessions, pour faire le log de l'évolution du projet
+
+Le CHECKPOINT.yaml ne marche pas : l'agent
+
+Faut souvent lui rappeler de faire le commit.
