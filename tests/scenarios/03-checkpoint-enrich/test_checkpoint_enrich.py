@@ -28,7 +28,7 @@ SAMPLE_CHECKPOINT = os.path.join(FIXTURES_DIR, "sample_checkpoint.yaml")
 SAMPLE_TRANSCRIPT = os.path.join(FIXTURES_DIR, "sample_transcript.jsonl")
 EXPECTED_ENRICHED = os.path.join(FIXTURES_DIR, "expected_enriched.yaml")
 
-SCRIPT_PATH = os.path.join(_project_root, "scripts", "checkpoint-enrich.py")
+SCRIPT_PATH = os.path.join(_project_root, "scripts", "checkpoint_enrich.py")
 
 
 # ---------------------------------------------------------------------------

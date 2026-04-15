@@ -1,9 +1,9 @@
 ---
-name: kiss-checkpoint-enrich
+name: kiss-enrich-checkpoint
 description: Enrich CHECKPOINT.yaml from Claude session transcripts
 ---
 
-# /kiss-checkpoint-enrich
+# /kiss-enrich-checkpoint
 
 Extracts verbatim content from Claude session transcripts and enriches
 the CHECKPOINT.yaml of the specified kiss-claw session.
@@ -11,7 +11,7 @@ the CHECKPOINT.yaml of the specified kiss-claw session.
 ## Usage
 
 ```
-/kiss-checkpoint-enrich <session-id> [--step <claude_session_id>] [--dry-run] [--transcripts-dir <path>]
+/kiss-enrich-checkpoint <session-id> [--step <claude_session_id>] [--dry-run] [--transcripts-dir <path>]
 ```
 
 | Mode | Behavior |
@@ -19,7 +19,7 @@ the CHECKPOINT.yaml of the specified kiss-claw session.
 | `<session-id>` only | Batch: enriches ALL steps in the CHECKPOINT |
 | `--step <id>` | Single step: enriches only the matching claude_session |
 | `--dry-run` | Shows what would change without modifying |
-| `--transcripts-dir` | Override transcript location (default: ~/.claude/projects/<slug>) |
+| `--transcripts-dir` | Override transcript location (default: from SESSIONS.json) |
 
 ## Execution
 
