@@ -93,6 +93,16 @@ def generate_report(
         sections.append(f"| {ac_id} | {mark} | {detail} |")
     sections.append("")
 
+    # --- Consumption ---
+    consumption = _extract_consumption(result)
+    if consumption:
+        sections.append("## Consumption\n")
+        sections.append("| Metric | Value |")
+        sections.append("|--------|-------|")
+        for key, value in consumption:
+            sections.append(f"| {key} | {value} |")
+        sections.append("")
+
     # --- Diagnosis ---
     sections.append("## Diagnosis\n")
     if diagnosis:
@@ -113,10 +123,55 @@ def generate_report(
 def _extract_cost(result):
     """Extract cost from ClaudeResult JSON, if available."""
     if result and result.json:
-        cost = result.json.get("cost_usd", result.json.get("cost"))
+        cost = result.json.get("total_cost_usd",
+               result.json.get("cost_usd",
+               result.json.get("cost")))
         if cost is not None:
             return cost
     return None
+
+
+def _extract_consumption(result):
+    """Extract detailed consumption metrics from ClaudeResult JSON.
+
+    Returns list of (key, value) tuples, or empty list if unavailable.
+    """
+    if not result or not result.json:
+        return []
+
+    data = result.json
+    metrics = []
+
+    if "duration_ms" in data:
+        secs = data["duration_ms"] / 1000
+        mins = secs / 60
+        metrics.append(("Duration (API)", f"{secs:.1f}s ({mins:.1f}min)"))
+
+    if "duration_api_ms" in data:
+        secs = data["duration_api_ms"] / 1000
+        metrics.append(("Duration (API calls only)", f"{secs:.1f}s"))
+
+    if "num_turns" in data:
+        metrics.append(("Turns", str(data["num_turns"])))
+
+    if "total_cost_usd" in data:
+        metrics.append(("Total cost", f"${data['total_cost_usd']:.4f}"))
+
+    if "stop_reason" in data:
+        metrics.append(("Stop reason", data["stop_reason"]))
+
+    usage = data.get("usage", {})
+    if usage:
+        if "input_tokens" in usage:
+            metrics.append(("Input tokens", f"{usage['input_tokens']:,}"))
+        cache_create = usage.get("cache_creation_input_tokens", 0)
+        cache_read = usage.get("cache_read_input_tokens", 0)
+        if cache_create or cache_read:
+            metrics.append(("Cache (create/read)", f"{cache_create:,} / {cache_read:,}"))
+        if "output_tokens" in usage:
+            metrics.append(("Output tokens", f"{usage['output_tokens']:,}"))
+
+    return metrics
 
 
 def _extract_environment(result, workspace):

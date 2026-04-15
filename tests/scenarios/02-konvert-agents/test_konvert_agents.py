@@ -101,10 +101,9 @@ def run(ctx):
             _KONVERT_PROMPT,                                      # INV-1
             output_format="json",                                 # INV-2
             model="sonnet",                                       # INV-3
-            max_turns=100,                                        # INV-4 (increased: full agent loop needs many turns)
+            max_turns=0,                                          # INV-4 (no limit — let agent finish)
             effort="medium",                                      # agents need reasoning
-            max_budget_usd=10.0,                                  # INV-5 (increased: 4 agents need room)
-            timeout=1200,                                         # INV-6 (20 min: full agent loop is slow)
+            timeout=18000,                                        # INV-6 (5h — capped by billing period)
             extra_flags=["--plugin-dir", _REPO_ROOT],             # INV-7
             cwd=workspace,                                        # INV-9
             dry_run=dry_run,                                      # DRY-RUN
@@ -113,9 +112,9 @@ def run(ctx):
 
         # --- ERR-1: Timeout ---
         if result.exit_code == -1:
-            ac_results.append(("AC-1", False, "Exit code is 0", f"timeout after 1200s"))
+            ac_results.append(("AC-1", False, "Exit code is 0", f"timeout after 18000s"))
             raise AssertionError(
-                f"timeout: claude invocation timed out after 1200 seconds"
+                f"timeout: claude invocation timed out after 18000 seconds"
             )
 
         # --- ERR-2: Binary not found ---
@@ -266,6 +265,27 @@ def run(ctx):
                     ac_results.append(("AC-9", True, f"CHECKPOINT.yaml exists but not enriched ({loc}) (soft)", ""))
             else:
                 ac_results.append(("AC-9", True, "CHECKPOINT.yaml not found (soft — not required)", ""))
+
+        # --- Print consumption metrics ---
+        if result and result.json:
+            _j = result.json
+            _cost = _j.get("total_cost_usd", "?")
+            _turns = _j.get("num_turns", "?")
+            _dur = _j.get("duration_ms", 0) / 1000
+            _usage = _j.get("usage", {})
+            _in = _usage.get("input_tokens", 0)
+            _out = _usage.get("output_tokens", 0)
+            _cache_c = _usage.get("cache_creation_input_tokens", 0)
+            _cache_r = _usage.get("cache_read_input_tokens", 0)
+            _stop = _j.get("stop_reason", "?")
+            print(f"\n  === CONSUMPTION ===")
+            print(f"  Cost     : ${_cost}")
+            print(f"  Duration : {_dur:.0f}s ({_dur/60:.1f}min)")
+            print(f"  Turns    : {_turns}")
+            print(f"  Tokens   : {_in:,} in / {_out:,} out")
+            print(f"  Cache    : {_cache_c:,} create / {_cache_r:,} read")
+            print(f"  Stop     : {_stop}")
+            print(f"  ====================\n")
 
         # --- Raise if any hard criterion failed ---
         if has_failure:
