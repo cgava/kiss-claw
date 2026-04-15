@@ -1,9 +1,6 @@
-"""test_checkpoint_enrich.py — TDD Red: tests for scripts/checkpoint-enrich.py
+"""test_enrich_checkpoint.py — Unit tests for scripts/enrich_checkpoint.py
 
-Tests define the expected behavior of checkpoint-enrich.py, which does NOT exist yet.
-All tests should FAIL (ImportError or AssertionError) until the implementation is written.
-
-checkpoint-enrich.py enriches CHECKPOINT.yaml files by extracting verbatim content
+enrich_checkpoint.py enriches CHECKPOINT.yaml files by extracting verbatim content
 from Claude session transcripts (.jsonl), classifying blocks into artifacts, decisions,
 issues, and rationale, and filling in sparse step fields.
 """
@@ -23,12 +20,12 @@ if _project_root not in sys.path:
 # ---------------------------------------------------------------------------
 # Fixture paths
 # ---------------------------------------------------------------------------
-FIXTURES_DIR = os.path.join(_project_root, "tests", "fixtures", "checkpoint-enrich")
+FIXTURES_DIR = os.path.join(_project_root, "tests", "fixtures", "enrich-checkpoint")
 SAMPLE_CHECKPOINT = os.path.join(FIXTURES_DIR, "sample_checkpoint.yaml")
 SAMPLE_TRANSCRIPT = os.path.join(FIXTURES_DIR, "sample_transcript.jsonl")
 EXPECTED_ENRICHED = os.path.join(FIXTURES_DIR, "expected_enriched.yaml")
 
-SCRIPT_PATH = os.path.join(_project_root, "scripts", "checkpoint_enrich.py")
+SCRIPT_PATH = os.path.join(_project_root, "scripts", "enrich_checkpoint.py")
 
 
 # ---------------------------------------------------------------------------
@@ -80,7 +77,7 @@ def _make_temp_workspace(tmp_dir):
 def test_parse_jsonl():
     """Extract text blocks from JSONL, ignore thinking/tool_use/user, filter < 100 chars."""
     # Import the function under test — will fail until checkpoint-enrich.py exists
-    from scripts.checkpoint_enrich import parse_jsonl
+    from scripts.enrich_checkpoint import parse_jsonl
 
     blocks = parse_jsonl(SAMPLE_TRANSCRIPT)
 
@@ -117,7 +114,7 @@ def test_parse_jsonl():
 
 def test_classify_blocks():
     """Verify classification: table -> artifacts, decision keywords -> decisions, etc."""
-    from scripts.checkpoint_enrich import classify_blocks
+    from scripts.enrich_checkpoint import classify_blocks
 
     blocks = [
         "Here is a table:\n| Col1 | Col2 |\n|---|---|\n| val1 | val2 |" + " " * 80,
@@ -162,7 +159,7 @@ def test_classify_blocks():
 
 def test_enrich_step():
     """Given a step with short task/result + extracted blocks, verify enrichment."""
-    from scripts.checkpoint_enrich import enrich_step
+    from scripts.enrich_checkpoint import enrich_step
 
     step = {
         "agent": "kiss-executor",
@@ -209,7 +206,7 @@ def test_enrich_step():
 
 def test_no_overwrite():
     """Given a step with long (>200 chars) task/result, verify they are NOT overwritten."""
-    from scripts.checkpoint_enrich import enrich_step
+    from scripts.enrich_checkpoint import enrich_step
 
     long_text = "x" * 250  # Exceeds 200 char threshold
 
@@ -415,11 +412,8 @@ def run(ctx):
     dry_run = ctx.get("dry_run", False)
 
     if dry_run:
-        # In dry-run mode, just verify the test structure is valid
-        # (imports will fail since checkpoint-enrich.py doesn't exist yet)
-        print("[dry-run] Would run 8 unit tests for checkpoint-enrich.py")
-        print("[dry-run] Tests expect scripts/checkpoint_enrich module to exist")
-        print("[dry-run] All tests should FAIL (RED phase) until implementation")
+        print("[dry-run] Would run 8 unit tests for enrich_checkpoint.py")
+        print("[dry-run] Tests expect scripts/enrich_checkpoint module to exist")
         return
 
     # Run all unit tests — collect results

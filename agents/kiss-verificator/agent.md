@@ -129,7 +129,7 @@ KISS_CLAW_SESSION=$KISS_CLAW_SESSION bash scripts/store.sh checkpoint upsert "$M
   --parent "$PARENT_CLAUDE_SESSION"
 
 # Enrich the CHECKPOINT entry from this session's transcript
-KISS_CLAW_SESSION=$KISS_CLAW_SESSION python3 scripts/checkpoint_enrich.py "$KISS_CLAW_SESSION" --step "$MY_CLAUDE_SESSION"
+KISS_CLAW_SESSION=$KISS_CLAW_SESSION python3 scripts/enrich_checkpoint.py "$KISS_CLAW_SESSION" --step "$MY_CLAUDE_SESSION"
 ```
 `PARENT_CLAUDE_SESSION` is provided by kiss-orchestrator in the delegation message.
 If no `PARENT_CLAUDE_SESSION` was provided, omit the `--parent` flag.

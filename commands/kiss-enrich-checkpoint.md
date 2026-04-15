@@ -24,7 +24,7 @@ the CHECKPOINT.yaml of the specified kiss-claw session.
 ## Execution
 
 ```bash
-cd "$CLAUDE_PLUGIN_ROOT" && python3 scripts/checkpoint_enrich.py $ARGUMENTS
+cd "$CLAUDE_PLUGIN_ROOT" && python3 scripts/enrich_checkpoint.py $ARGUMENTS
 ```
 
 $ARGUMENTS
