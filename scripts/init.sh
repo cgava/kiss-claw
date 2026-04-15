@@ -322,17 +322,42 @@ do_init() {
   local claude_slug
   claude_slug="$(pwd | sed 's|/|-|g')"
   local claude_sessions_path="$HOME/.claude/projects/$claude_slug"
-  local current_sessions
-  current_sessions="$("$STORE" read sessions)"
-  local updated_sessions
-  updated_sessions="$(echo "$current_sessions" | python3 -c "
+
+  # Interactive confirmation
+  if [[ -t 0 ]]; then
+    echo ""
+    echo "Chemin des sessions Claude detecte :"
+    echo "  $claude_sessions_path"
+    read -rp "Correct ? (Y/n/chemin alternatif) : " reply
+    reply="${reply:-Y}"
+    case "$reply" in
+      [Yy]|[Yy]es|"") ;;
+      [Nn]|[Nn]o)
+        echo "  Ignore — claude_sessions_path non enregistre."
+        echo "  Vous pourrez le configurer plus tard via --transcripts-dir."
+        claude_sessions_path=""
+        ;;
+      *)
+        claude_sessions_path="$reply"
+        echo "  Utilisation du chemin : $claude_sessions_path"
+        ;;
+    esac
+  fi
+
+  if [[ -n "$claude_sessions_path" ]]; then
+    local current_sessions
+    current_sessions="$("$STORE" read sessions)"
+    local updated_sessions
+    updated_sessions="$(echo "$current_sessions" | python3 -c "
 import json, sys
+path = sys.argv[1]
 data = json.load(sys.stdin)
-data['claude_sessions_path'] = '$claude_sessions_path'
+data['claude_sessions_path'] = path
 print(json.dumps(data, indent=2, ensure_ascii=False))
-")"
-  echo "$updated_sessions" | "$STORE" write sessions > /dev/null
-  echo "  stored claude_sessions_path in SESSIONS.json"
+" "$claude_sessions_path")"
+    echo "$updated_sessions" | "$STORE" write sessions > /dev/null
+    echo "  stored claude_sessions_path in SESSIONS.json"
+  fi
 
   # --- 2.5 Update .gitignore ---
   echo ""

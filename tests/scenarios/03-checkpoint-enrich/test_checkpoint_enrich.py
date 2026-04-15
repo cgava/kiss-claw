@@ -49,7 +49,8 @@ def _make_temp_workspace(tmp_dir):
 
     # Create transcript directory structure for subagent sessions
     # The parent session is 6dd4a886-0060-4cf9-96e5-6ed0dc4adb50
-    slug = tmp_dir.replace("/", "-").lstrip("-")
+    # Claude Code slug keeps leading dash: /tmp/foo → -tmp-foo
+    slug = tmp_dir.replace("/", "-")
     transcript_base = os.path.join(
         tmp_dir, ".claude", "projects", slug
     )
@@ -61,6 +62,13 @@ def _make_temp_workspace(tmp_dir):
     shutil.copy(SAMPLE_TRANSCRIPT, os.path.join(subagent_dir, "abc123-short.jsonl"))
 
     # No transcript for def456-long (tests missing transcript handling)
+
+    # Create SESSIONS.json with claude_sessions_path for transcript discovery
+    project_dir = os.path.join(tmp_dir, ".kiss-claw", "project")
+    os.makedirs(project_dir, exist_ok=True)
+    sessions_json = {"claude_sessions_path": transcript_base, "sessions": []}
+    with open(os.path.join(project_dir, "SESSIONS.json"), "w") as f:
+        json.dump(sessions_json, f)
 
     return tmp_dir, session_dir, transcript_base
 

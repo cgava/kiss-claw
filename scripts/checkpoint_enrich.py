@@ -12,7 +12,6 @@ Usage:
 import argparse
 import json
 import os
-import re
 import sys
 
 import yaml
@@ -199,15 +198,12 @@ def _iter_steps_recursive(steps):
             yield from _iter_steps_recursive(children)
 
 
-def _find_transcript(step, home_dir, cwd, transcripts_base=None):
+def _find_transcript(step, transcripts_base):
     """Locate the .jsonl transcript file for a given step.
 
     Args:
         step: Step dict with claude_session and optional parent_session.
-        home_dir: HOME directory.
-        cwd: Current working directory (used to derive the slug).
-        transcripts_base: Optional override for the transcript base directory.
-            If provided, used instead of deriving from home_dir + slug.
+        transcripts_base: Base directory for transcript lookup.
 
     Returns:
         Path to the .jsonl file, or None if not found.
@@ -215,11 +211,7 @@ def _find_transcript(step, home_dir, cwd, transcripts_base=None):
     claude_session = step.get("claude_session", "")
     parent_session = step.get("parent_session")
 
-    if transcripts_base:
-        base = transcripts_base
-    else:
-        slug = cwd.replace("/", "-").lstrip("-")
-        base = os.path.join(home_dir, ".claude", "projects", slug)
+    base = transcripts_base
 
     if parent_session:
         path = os.path.join(base, parent_session, "subagents", f"{claude_session}.jsonl")
@@ -242,8 +234,6 @@ def main():
 
     # Resolve paths
     kiss_claw_dir = os.environ.get("KISS_CLAW_DIR", os.path.join(".", ".kiss-claw"))
-    home_dir = os.environ.get("HOME", os.path.expanduser("~"))
-    cwd = os.getcwd()
 
     checkpoint_path = os.path.join(kiss_claw_dir, "sessions", args.session_id, "CHECKPOINT.yaml")
 
@@ -257,16 +247,16 @@ def main():
     # Resolve transcripts directory
     transcripts_dir = args.transcripts_dir
     if not transcripts_dir:
-        # Try to read from SESSIONS.json
+        # Read from SESSIONS.json (populated by init.sh)
         sessions_path = os.path.join(kiss_claw_dir, "project", "SESSIONS.json")
         if os.path.isfile(sessions_path):
             with open(sessions_path, "r", encoding="utf-8") as f:
                 sessions_data = json.load(f)
             transcripts_dir = sessions_data.get("claude_sessions_path")
-        # Final fallback: derive from cwd (may be wrong)
         if not transcripts_dir:
-            slug = cwd.replace("/", "-").lstrip("-")
-            transcripts_dir = os.path.join(home_dir, ".claude", "projects", slug)
+            print("Error: no transcripts directory found. Use --transcripts-dir or run init.sh.",
+                  file=sys.stderr)
+            sys.exit(1)
 
     modified = False
 
@@ -278,8 +268,7 @@ def main():
             continue
 
         # Find transcript
-        transcript_path = _find_transcript(step, home_dir, cwd,
-                                           transcripts_base=transcripts_dir)
+        transcript_path = _find_transcript(step, transcripts_dir)
         if transcript_path is None:
             print(
                 f"Warning: transcript not found for step {cs}",
