@@ -61,10 +61,7 @@ class ScenarioResult:
     def passed(self) -> bool:
         """True if all steps passed and all required final assertions passed."""
         steps_ok = all(s.passed for s in self.step_results)
-        finals_ok = all(
-            f[1] for f in self.final_results
-            if not (len(f) > 3 and f[3] == "soft")
-        )
+        finals_ok = all(f[1] for f in self.final_results)
         return steps_ok and finals_ok
 
 

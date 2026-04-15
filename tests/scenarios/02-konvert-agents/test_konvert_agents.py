@@ -52,6 +52,8 @@ def run(ctx):
     # Create isolated temporary workspace (skip in dry-run)
     workspace = tempfile.mkdtemp(prefix="kiss-claw-konvert-") if not dry_run else "(dry-run)"
     all_passed = False
+    result = None
+    ac_results = []
     start_time = time.time()
 
     try:
@@ -127,8 +129,8 @@ def run(ctx):
 
         _write_report(
             ctx,
-            result=result if "result" in dir() else None,
-            ac_results=ac_results if "ac_results" in dir() else [],
+            result=result,
+            ac_results=ac_results,
             workspace=workspace,
             duration=final_duration,
             preserved=preserved,
