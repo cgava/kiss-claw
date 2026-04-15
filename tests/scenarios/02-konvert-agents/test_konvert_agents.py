@@ -167,6 +167,7 @@ def run(ctx):
             ac_results.append(("AC-6", True, "test_konvert.sh exists — SKIP (dry-run)", ""))
             ac_results.append(("AC-7", True, "REVIEWS.md exists — SKIP (dry-run)", ""))
             ac_results.append(("AC-8", True, "INSIGHTS.md exists — SKIP (dry-run)", ""))
+            ac_results.append(("AC-9", True, "CHECKPOINT.yaml enriched — SKIP (dry-run)", ""))
         else:
             # --- AC-3: PLAN.md exists and mentions phases ---
             plan = _find_file([ws / ".kiss-claw" / "PLAN.md", ws / "PLAN.md"])
@@ -241,6 +242,30 @@ def run(ctx):
                 ac_results.append(("AC-8", True, f"Insights file exists ({loc}) (soft)", ""))
             else:
                 ac_results.append(("AC-8", True, "Insights file not found (soft — not required)", ""))
+
+            # --- AC-9: CHECKPOINT.yaml exists with enrichment fields (SOFT) ---
+            # Session ID is dynamic, so glob for any session directory
+            checkpoint_candidates = list((ws / ".kiss-claw" / "sessions").glob("*/CHECKPOINT.yaml")) if (ws / ".kiss-claw" / "sessions").is_dir() else []
+            checkpoint = checkpoint_candidates[0] if checkpoint_candidates else None
+            if not checkpoint:
+                # Also check old flat layout
+                checkpoint = _find_file([
+                    ws / ".kiss-claw" / "CHECKPOINT.yaml",
+                    ws / "CHECKPOINT.yaml",
+                ])
+
+            if checkpoint:
+                content = checkpoint.read_text()
+                # Check for enrichment fields (artifacts, decisions, issues, rationale)
+                has_enrichment = any(field in content for field in ["artifacts:", "decisions:", "issues:", "rationale:"])
+                if has_enrichment:
+                    loc = str(checkpoint.relative_to(ws))
+                    ac_results.append(("AC-9", True, f"CHECKPOINT.yaml enriched ({loc})", ""))
+                else:
+                    loc = str(checkpoint.relative_to(ws))
+                    ac_results.append(("AC-9", True, f"CHECKPOINT.yaml exists but not enriched ({loc}) (soft)", ""))
+            else:
+                ac_results.append(("AC-9", True, "CHECKPOINT.yaml not found (soft — not required)", ""))
 
         # --- Raise if any hard criterion failed ---
         if has_failure:
