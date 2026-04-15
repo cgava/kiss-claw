@@ -16,6 +16,7 @@ kiss-claw/
     init.sh                — Project initialization (creates .kiss-claw/ structure)
     store.sh               — Persistence layer (/kiss-store read/write/list)
     sync-sessions.sh       — Sync Claude Code sessions to .kiss-claw/claude-sessions/
+    enrich_checkpoint.py   — Enrich CHECKPOINT.yaml from Claude session transcripts
   hooks/                   — Claude Code lifecycle hooks
     hooks.json             — Hook configuration
     guard.sh               — PreToolUse: protects critical files by owner

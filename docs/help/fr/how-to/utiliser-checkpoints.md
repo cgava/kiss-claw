@@ -77,6 +77,47 @@ log:
         children: []
 ```
 
+## Enrichir un checkpoint
+
+Les entrees du log sont initialement compactes (task/result monolignes). Le skill `/kiss-enrich-checkpoint` extrait le contenu riche des transcripts Claude et l'injecte dans le CHECKPOINT :
+
+```
+/kiss-enrich-checkpoint 20260414-153022
+```
+
+Ou en ligne de commande :
+
+```bash
+KISS_CLAW_DIR=.kiss-claw python3 scripts/enrich_checkpoint.py 20260414-153022
+```
+
+L'enrichissement ajoute a chaque step les champs suivants :
+
+- `artifacts` : tableaux, rapports, verdicts (signaux : `=== TASK REPORT ===`, `Verdict :`, `REV-`, tables markdown)
+- `decisions` : choix majeurs et alternatives considerees
+- `issues` : problemes rencontres, caveats, limitations
+- `rationale` : synthese des raisons derriere les decisions
+
+Les champs `task` et `result` sont egalement enrichis si leur contenu est trop court (< 200 caracteres).
+
+### Mode preview
+
+```
+/kiss-enrich-checkpoint 20260414-153022 --dry-run
+```
+
+Affiche ce qui serait modifie sans toucher au fichier.
+
+### Enrichir un seul step
+
+```
+/kiss-enrich-checkpoint 20260414-153022 --step executor-20260414-153022
+```
+
+### Enrichissement automatique par les agents
+
+Chaque agent appelle automatiquement l'enrichissement apres son `checkpoint upsert`. L'enrichissement batch (`/kiss-enrich-checkpoint <session>` sans `--step`) est utile pour les sessions anterieures ou pour re-enrichir apres un sync des transcripts.
+
 ## Utilisation a la fermeture de session
 
 Quand vous dites `close session`, l'orchestrateur lit le CHECKPOINT.yaml pour construire le resume de session dans SESSIONS.json. Le checkpoint est la source de verite pour :

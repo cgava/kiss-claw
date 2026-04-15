@@ -37,6 +37,37 @@ Reference complete : [store.sh](store-sh.md)
 
 ---
 
+## /kiss-enrich-checkpoint
+
+**Usage** :
+
+```
+/kiss-enrich-checkpoint <session-id> [--step <claude_session_id>] [--dry-run] [--transcripts-dir <path>]
+```
+
+**Description** : Enrichit le CHECKPOINT.yaml d'une session en extrayant le contenu verbatim des transcripts Claude (.jsonl). Les blocs substantiels des messages assistant sont classes en artifacts, decisions, issues et rationale, puis injectes dans les champs du CHECKPOINT.
+
+**Arguments** :
+
+| Argument            | Description                                    |
+|---------------------|------------------------------------------------|
+| `<session-id>`      | ID de la session a enrichir                    |
+| `--step <id>`       | Enrichir uniquement le step correspondant      |
+| `--dry-run`         | Afficher les changements sans modifier         |
+| `--transcripts-dir` | Chemin alternatif pour les transcripts (defaut : depuis SESSIONS.json) |
+
+**Exemples** :
+
+```
+/kiss-enrich-checkpoint 20260414-082706
+/kiss-enrich-checkpoint 20260414-082706 --step executor-20260414-082706
+/kiss-enrich-checkpoint 20260414-082706 --dry-run
+```
+
+Script : `scripts/enrich_checkpoint.py`
+
+---
+
 ## /kiss-orchestrator
 
 **Usage** :
