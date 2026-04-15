@@ -290,6 +290,11 @@ def run_scenario(
 
     prefix = "[DRY RUN] " if dry_run else ""
 
+    if not dry_run:
+        print(f"  Workspace: {workspace}")
+        if test_config.get("debug_file", False):
+            print(f"  Debug logs: {os.path.join(workspace, '.kiss-claw-debug/')}")
+
     for step in scenario["steps"]:
         step_id = step["id"]
         action = step["action"]
@@ -330,6 +335,7 @@ def run_scenario(
             debug_dir = os.path.join(workspace, ".kiss-claw-debug")
             os.makedirs(debug_dir, exist_ok=True)
             debug_path = os.path.join(debug_dir, f"{step_id}.log")
+            print(f"\n    debug: {debug_path}", end="", flush=True)
         else:
             debug_path = None
 
