@@ -1,6 +1,18 @@
 # kiss-claw Test Framework
 
-End-to-end tests that invoke the real Claude CLI and verify behavior.
+## Test strategy
+
+Tests are organized in three levels:
+
+| Level | LLM required | Model | Cost | Purpose |
+|-------|-------------|-------|------|---------|
+| Unit | No | -- | $0.00 | Pure Python tests against internal scripts |
+| Smoke | Yes | haiku | ~$0.10 | Cheap validation of the prompt-to-response pipeline |
+| Integration | Yes | sonnet | ~$0.20-0.50 | Full agent loop with plugin, multi-turn, artifacts |
+
+All tests are written in Python stdlib only (no pip dependencies). LLM-based tests
+invoke `claude -p` via subprocess, wrapped by `tests/lib/claude_cli.py` (sourced from
+`vendor/my-claude-minion`). Docker is optional for environment isolation.
 
 ## Prerequisites
 
@@ -8,78 +20,103 @@ End-to-end tests that invoke the real Claude CLI and verify behavior.
 - `claude` CLI installed and authenticated (OAuth login)
 - Docker (optional, for containerized runs)
 
-## Local setup
+## Scenarios
 
-```bash
-./tests/setup-venv.sh
-source tests/.venv/bin/activate
-```
+### 01-hello-world -- Smoke test (interactive 2-step with --resume)
 
-No pip dependencies -- stdlib only.
+**Type:** smoke test | **Model:** haiku | **Cost:** ~$0.10
 
-## Running tests locally
+Tests the interactive pipeline: prompt, language detection, resume, response.
 
-From the project root:
+- **Step 1:** Asks Claude to pick a language (FR/EN/ES/DE) and greet the user with
+  "how are you?" in that language.
+- **Step 2:** The test code detects the language from Step 1 output, then responds in
+  the same language via `--resume` using the session ID from Step 1.
 
-```bash
-python tests/lib/runner.py
-# or
-python -m tests.lib.runner
-```
+Acceptance criteria verified:
+- Exit codes are 0 for both steps
+- Outputs are non-empty
+- Session ID is a valid non-empty string
+- Language is detected as one of fr/en/es/de
 
-The runner discovers all `test_*.py` files in `tests/scenarios/`, calls each
-`run(ctx)` function, and reports pass/fail/error with timing.
+No `scenario.json` -- steps are dynamically constructed in Python
+(`test_hello_world.py`).
 
-## Running tests in Docker
+### 02-konvert-agents -- Integration test (multi-turn with plugin)
 
-```bash
-./tests/docker/build-and-test.sh [commit_sha]
-```
+**Type:** integration | **Model:** sonnet | **Cost:** ~$0.20-0.50
 
-For remote clone via SSH agent forwarding:
+Tests the full agent workflow: orchestrator, executor, verificator working together
+to produce artifacts in an isolated workspace.
 
-```bash
-GIT_REMOTE_URL=git@github.com:user/kiss-claw.git \
-  ./tests/docker/build-and-test.sh --ssh [commit_sha]
-```
+- **5 steps** defined in `scenario.json`:
+  1. `start` -- Launch orchestrator with the konvert project directive
+  2. `init-q1-answer` -- Answer first INIT question (resume)
+  3. `init-q2-answer` -- Answer second INIT question about phases (resume)
+  4. `init-q3-answer` -- Answer third INIT question about constraints (resume)
+  5. `delegation` -- Let the agent work through delegation (long-running, up to 5min timeout)
 
-Requires `SSH_AUTH_SOCK` (ssh-agent running) and `GIT_REMOTE_URL` set.
+- **Workspace:** isolated tempdir, preserved after run for inspection
+- **Plugin:** kiss-claw loaded via `--plugin-dir`
 
-## Writing a new test scenario
+Acceptance criteria verified:
+- `konvert.sh` exists and is executable
+- `test_konvert.sh` exists and is executable
+- `PLAN.md` created in session directory, contains phase information
+- `STATE.md` created in session directory
+- `REVIEWS.md` and `CHECKPOINT.yaml` (optional, non-blocking)
 
-1. Create `tests/scenarios/test_<name>.py`
-2. Implement a `run(ctx)` function:
+Uses `scenario_runner.py` for sequential step execution with `--resume` chaining.
 
-```python
-import os, sys
+### 03-enrich-checkpoint -- Unit tests (no LLM)
 
-_project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-if _project_root not in sys.path:
-    sys.path.insert(0, _project_root)
+**Type:** unit test | **Model:** none | **Cost:** $0.00
 
-from tests.lib.claude_cli import invoke
-from tests.lib.assertions import assert_exit_code, assert_stdout_contains
+Tests `scripts/enrich_checkpoint.py`, which enriches CHECKPOINT.yaml files by
+extracting content from Claude session transcripts (.jsonl) and classifying blocks
+into artifacts, decisions, issues, and rationale.
 
-def run(ctx):
-    """ctx has keys: scenario_dir, workspace"""
-    result = invoke("your prompt here", model="haiku", max_turns=1)
-    assert_exit_code(result, 0)
-    assert_stdout_contains(result, r"expected pattern")
-```
+8 sub-tests using fixtures from `tests/fixtures/enrich-checkpoint/`:
 
-- `ctx["scenario_dir"]` -- absolute path to `tests/scenarios/`
-- `ctx["workspace"]` -- absolute path to the project root
-- Raise `AssertionError` to signal failure
+| Test | What it verifies |
+|------|-----------------|
+| `test_parse_jsonl` | Extracts assistant text blocks, excludes thinking/tool_use/user, filters blocks < 100 chars |
+| `test_classify_blocks` | Classifies blocks: tables to artifacts, decision keywords to decisions, caveats to issues |
+| `test_enrich_step` | Given short task/result + blocks, enriches step with artifacts/decisions/issues |
+| `test_no_overwrite` | Steps with long (>200 chars) task/result are NOT overwritten |
+| `test_dry_run` | `--dry-run` flag prints output but does not modify CHECKPOINT file |
+| `test_batch_mode` | All steps processed when no `--step` flag |
+| `test_step_mode` | Only the specified step processed with `--step` flag |
+| `test_missing_transcript` | Graceful handling (warning, no crash) when .jsonl not found |
+
+No LLM calls, no `claude` subprocess. Uses `subprocess` only to invoke
+`enrich_checkpoint.py` itself for CLI-level tests.
 
 ## Framework modules
 
-| Module | Purpose |
-|--------|---------|
-| `tests/lib/runner.py` | Discovers `test_*.py` scenarios, runs `run(ctx)`, reports results |
-| `tests/lib/assertions.py` | Assertion helpers: `assert_exit_code`, `assert_file_exists`, `assert_file_contains`, `assert_stdout_contains`, `assert_json_field` |
-| `tests/lib/claude_cli.py` | Wraps `claude -p` subprocess calls, returns `ClaudeResult` with stdout/stderr/exit_code/json |
+| Module | Role |
+|--------|------|
+| `tests/lib/runner.py` | Recursive discovery of `test_*.py` files, execution of `run(ctx)`, pass/fail reporting |
+| `tests/lib/claude_cli.py` | Wrapper around `claude -p` subprocess (from `vendor/my-claude-minion`) |
+| `tests/lib/scenario_runner.py` | Interactive multi-turn runner with `--resume` chaining, driven by `scenario.json` |
+| `tests/lib/assertions.py` | Assertion helpers: exit code, file exists, file contains, file executable, glob, stdout matches |
+| `tests/lib/report.py` | Markdown test report generator |
+
+## Running tests
+
+```bash
+# Run all scenarios
+python tests/lib/runner.py
+
+# Dry-run: validate imports, paths, and command construction without calling the LLM
+python tests/lib/runner.py --dry-run
+
+# Run in Docker (isolated environment)
+./tests/docker/build-and-test.sh
+```
 
 ## Cost note
 
-Each test invocation calls the Claude API. Typical cost per invocation: ~$0.05-0.15
-(haiku model, effort low). Keep scenarios minimal to control spend.
+Each LLM invocation costs approximately $0.05 (haiku) to $0.20 (sonnet).
+The `--dry-run` flag validates structure and imports at zero cost. Unit test
+scenarios (03-enrich-checkpoint) never call the LLM and are always free.
