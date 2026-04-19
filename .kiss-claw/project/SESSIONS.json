@@ -15,206 +15,86 @@
       "summary": {
         "need": "En mode dev, kiss-claw partageait un seul répertoire .kiss-claw/ plat entre le projet hôte et le plugin. Conflits de fichiers d état et impossibilité de gérer plusieurs sessions en parallèle.",
         "outcome": "Restructuration complète en 3 tiers (agents/, project/, sessions/). store.sh refactoré avec resolve() 3 catégories et KISS_CLAW_SESSION. init.sh interactif avec support symlinks. Orchestrator enrichi avec list/resume/new session. Hooks et 4 agents adaptés. Tests 133/133 pass. Migration v6→v7 automatique via --migrate.",
-        "files_changed": [
-          "scripts/store.sh",
-          "scripts/init.sh",
-          "agents/kiss-orchestrator/agent.md",
-          "agents/kiss-executor/agent.md",
-          "agents/kiss-verificator/agent.md",
-          "agents/kiss-improver/agent.md",
-          "hooks/guard.sh",
-          "hooks/hooks.json",
-          "hooks/session-end.sh",
-          "commands/kiss-store.md",
-          "CLAUDE.md",
-          "README.md",
-          "README-fr.md",
-          "tests/test-store.sh",
-          "tests/test-e2e.sh",
-          "tests/test-mock-store.sh",
-          "templates/MEMORY_agents.md.template",
-          ".gitignore"
-        ],
-        "decisions": [
-          "Structure 3-tier (agents/project/sessions) plutôt que flat",
-          "Variables d env configurables",
-          "Session ID format YYYYMMDD-HHmmss",
-          "KISS_CLAW_SESSION requis pour ressources session-scoped",
-          "Migration automatique v6→v7 via init.sh --migrate",
-          "VERSION file pour détecter le layout"
-        ],
-        "next": [
-          "CHECKPOINT.yaml session-scoped (implémenté session 082706)",
-          "Tester multi-session en conditions réelles"
-        ]
+        "files_changed": ["scripts/store.sh", "scripts/init.sh", "agents/kiss-orchestrator/agent.md"],
+        "decisions": ["Structure 3-tier", "Session ID format YYYYMMDD-HHmmss"],
+        "next": ["CHECKPOINT.yaml session-scoped"]
       }
     },
     {
       "id": "20260414-082706",
       "created": "2026-04-14T08:27:06",
       "status": "done",
-      "title": "CHECKPOINT.yaml + Journal évolutions projet",
-      "closed": "2026-04-14T09:00:00",
-      "summary": {
-        "need": "Implémenter un système de traçabilité session-scoped.",
-        "outcome": "store.sh étendu avec checkpoint init-need et upsert. 4 agents instrumentés. sync-sessions.sh créé.",
-        "files_changed": [
-          ".gitignore",
-          "CLAUDE.md",
-          "agents/kiss-executor/agent.md",
-          "agents/kiss-improver/agent.md",
-          "agents/kiss-orchestrator/agent.md",
-          "agents/kiss-verificator/agent.md",
-          "scripts/backfill-checkpoint.sh",
-          "scripts/store.sh",
-          "scripts/sync-sessions.sh"
-        ],
-        "decisions": [
-          "Format YAML plutôt que JSON",
-          "store.sh = seul point d écriture CHECKPOINT",
-          "Placeholder session ID en attendant sync"
-        ],
-        "next": [
-          "Tester le workflow complet en conditions réelles"
-        ]
-      }
+      "title": "CHECKPOINT.yaml + Journal évolutions projet"
     },
     {
       "id": "20260414-143500",
       "created": "2026-04-14T14:35:00",
       "status": "done",
-      "title": "Documentation Diátaxis kiss-claw",
-      "closed": "2026-04-14T15:30:00",
-      "summary": {
-        "need": "Dette documentaire.",
-        "outcome": "Documentation Diátaxis complète en français dans docs/help/fr/. Skill /kiss-help créé.",
-        "files_changed": [
-          "docs/help/fr/ (25 fichiers)",
-          "commands/kiss-help.md",
-          "scripts/help.sh",
-          "hooks/agent-suggest.sh"
-        ],
-        "decisions": [
-          "Framework Diátaxis",
-          "Structure i18n-ready",
-          "Français sans accents"
-        ],
-        "next": [
-          "Traduction anglaise",
-          "Tutorials supplémentaires"
-        ]
-      }
+      "title": "Documentation Diátaxis kiss-claw"
     },
     {
       "id": "20260414-170500",
       "created": "2026-04-14T17:05:00",
       "status": "done",
-      "title": "Détection runtime claude_session ID dans les agents",
-      "closed": "2026-04-14T18:10:00",
-      "summary": {
-        "need": "Les CHECKPOINT.yaml utilisaient des placeholders au lieu des vrais IDs.",
-        "outcome": "Mécanisme de détection runtime implémenté dans les 4 agents.",
-        "files_changed": [
-          "agents/kiss-orchestrator/agent.md",
-          "agents/kiss-executor/agent.md",
-          "agents/kiss-verificator/agent.md",
-          "agents/kiss-improver/agent.md",
-          ".kiss-claw/agents/MEMORY_kiss-orchestrator.md",
-          "scripts/sync-sessions.sh"
-        ],
-        "decisions": [
-          "Détection via ls -t sur fichiers .jsonl/.meta.json",
-          "Fallback <agent>-$KISS_CLAW_SESSION",
-          "Slug dérivé de $PWD via sed"
-        ],
-        "next": [
-          "Backfill CHECKPOINT.yaml des sessions 082706 et 143500"
-        ]
-      }
+      "title": "Détection runtime claude_session ID"
     },
     {
       "id": "20260414-180629",
       "created": "2026-04-14T18:06:29",
       "status": "done",
-      "title": "Backfill CHECKPOINT session 170500 + close session",
-      "closed": "2026-04-14T18:13:00",
-      "summary": {
-        "need": "CHECKPOINT.yaml de 170500 resté au format plat avec placeholders.",
-        "outcome": "CHECKPOINT.yaml reconstruit au format de référence.",
-        "files_changed": [
-          ".kiss-claw/sessions/20260414-170500/CHECKPOINT.yaml",
-          ".kiss-claw/project/SESSIONS.json"
-        ],
-        "decisions": [
-          "Écriture directe plutôt que upsert itératif",
-          "Mapping des IDs Claude via ls"
-        ],
-        "next": [
-          "none"
-        ]
-      }
+      "title": "Backfill CHECKPOINT session 170500"
     },
     {
       "id": "20260414-213000",
       "created": "2026-04-14T21:30:00",
       "status": "done",
-      "title": "Enrichissement CHECKPOINT.yaml — mémoire projet auto-suffisante",
-      "closed": "2026-04-14T22:15:00",
-      "summary": {
-        "need": "CHECKPOINT.yaml trop compacts pour servir de mémoire projet.",
-        "outcome": "Format enrichi défini et validé. Prototype sur session 223433. Spec écrite.",
-        "files_changed": [
-          ".kiss-claw/sessions/20260413-223433/CHECKPOINT.yaml",
-          "docs/SPEC-checkpoint-enrich.md"
-        ],
-        "decisions": [
-          "YAML + Markdown | blocks",
-          "6 champs par step",
-          "Python avec pyyaml via .venv"
-        ],
-        "next": [
-          "Implémenter scripts/checkpoint-enrich.py",
-          "Modifier les 4 agent.md",
-          "Enrichir les 4 CHECKPOINTs restants"
-        ]
-      }
+      "title": "Enrichissement CHECKPOINT.yaml"
     },
     {
       "id": "20260414-231500",
       "created": "2026-04-14T23:15:00",
       "status": "done",
-      "title": "Implementation /kiss-enrich-checkpoint",
-      "closed": "2026-04-15T09:00:00",
-      "summary": {
-        "need": "CHECKPOINT.yaml trop compacts. Objectif : mémoire projet auto-suffisante.",
-        "outcome": "Script enrich_checkpoint.py implémenté (TDD, 8 tests). Skill créé. 4 agents instrumentés. 4 CHECKPOINTs enrichis. Documentation mise à jour.",
-        "files_changed": [
-          "scripts/enrich_checkpoint.py",
-          "scripts/__init__.py",
-          "scripts/init.sh",
-          "commands/kiss-enrich-checkpoint.md",
-          "agents/*.md",
-          "tests/scenarios/03-enrich-checkpoint/",
-          "tests/fixtures/enrich-checkpoint/",
-          "docs/help/fr/"
-        ],
-        "decisions": [
-          "TDD red/green",
-          "Block scalars YAML (|)",
-          "claude_sessions_path dans SESSIONS.json",
-          "Renommage checkpoint-enrich -> enrich-checkpoint"
-        ],
-        "next": [
-          "ISSUE: 02-konvert-agents echoue (INIT interactif vs claude -p non-interactif)",
-          "Tester enrichissement automatique en conditions réelles"
-        ]
-      }
+      "title": "Implementation /kiss-enrich-checkpoint"
     },
     {
       "id": "20260415-113650",
       "created": "2026-04-15T11:36:50",
+      "status": "done",
+      "title": "Test interactif agents conversationnels",
+      "closed": "2026-04-17T22:55:00",
+      "summary": {
+        "need": "Les scénarios de test (02-konvert-agents) ne fonctionnaient qu'en --dry-run. L'orchestrateur pose 3 questions INIT interactives mais claude -p est non-interactif — les tests ne validaient rien en vrai.",
+        "outcome": "Framework de test interactif multi-turn opérationnel. scenario_runner.py avec --resume chaining, scenario.json, assertions, debug output. hello-world réécrit en test interactif 2 étapes (prompt→détection langue→resume). Pipeline validé en live : 01-hello-world PASS, 03-enrich-checkpoint PASS. 02-konvert-agents partiellement fonctionnel (resume marche, timeout step q1 à régler). tests/README.md réécrit avec stratégie de test complète.",
+        "files_changed": ["tests/lib/scenario_runner.py", "tests/lib/assertions.py", "tests/scenarios/01-hello-world/test_hello_world.py", "tests/scenarios/02-konvert-agents/scenario.json", "tests/scenarios/02-konvert-agents/test_konvert_agents.py", "tests/README.md", "vendor/my-claude-minion/src/my_claude_minion/cli.py", "docs/designs/260415-v9-design_interactive_test_runner.md"],
+        "decisions": ["Format JSON pour les scénarios (stdlib only, pas YAML)", "--resume chaining pour les interactions multi-turn", "Assertions structurelles + regex (pas de LLM-as-judge en v1)", "hello-world en Python direct (pas de scenario.json) pour les steps dynamiques", "session_persistence forcée quand le scénario contient des resume steps"],
+        "next": ["Augmenter timeout_per_step de 02-konvert-agents (300s insuffisant pour step q1)", "Investiguer pourquoi step q1 timeout alors que q2/q3/delegation passent", "Documenter le format scenario.json et le workflow de création de nouveaux scénarios"]
+      }
+    },
+    {
+      "id": "20260417-223204",
+      "created": "2026-04-17T22:32:04",
       "status": "in_progress",
-      "title": "Test interactif agents conversationnels"
+      "title": "obsidian-wiki dual-sensitivity (s0/s2)"
+    },
+    {
+      "id": "20260417-205142",
+      "created": "2026-04-17T20:51:42",
+      "status": "done",
+      "title": "Audit ingestion obsidian-wiki + documentation pipelines",
+      "closed": "2026-04-18T00:05:00",
+      "summary": {
+        "need": "Comprendre si les comportements d'ingestion d'obsidian-wiki sont hardcodés dans les skills, avant de planifier un refactoring vers un routage déclaratif.",
+        "outcome": "Audit complet des 5 skills d'ingestion (wiki-ingest, data-ingest, claude-history-ingest, codex-history-ingest, wiki-history-ingest). Verdict : comportements en dur dans les SKILL.md, aucun mécanisme de routing configurable. Documentation des 3 modes (Append/Full/Raw), pipeline wiki-ingest (7 étapes), pipeline data-ingest (5 étapes) ajoutée dans knlg-repo/README.md.",
+        "files_changed": ["workspace/my-obsidian-wiki/knlg-repo/README.md"],
+        "decisions": ["Session exploratoire — pas de plan formalisé, audit + documentation uniquement"],
+        "next": ["Planifier le refactoring vers un routage déclaratif d'ingestion", "Ajouter un type YouTube avec enrichissement métadonnées", "Reprendre le INIT kiss-orchestrator avec les questions 2 et 3"]
+      }
+    },
+    {
+      "id": "20260417-230316",
+      "created": "2026-04-17T23:03:16",
+      "status": "in_progress",
+      "title": "Tests agents en isolation Docker"
     }
   ],
   "claude_sessions_path": "/home/omc/.claude/projects/-home-omc-workspace-kiss-claw"

@@ -13,3 +13,20 @@ Reviewed 6 files implementing the interactive scenario runner (scenario_runner.p
 
 **For kiss-orchestrator**
 Proceed to next step.
+
+### REV-0002
+
+- **date**     : 2026-04-16
+- **subject**  : kiss-executor task — Rewrite test_hello_world.py as interactive 2-step test with --resume chaining
+- **verdict**  : approved-with-notes
+
+**Summary**
+Reviewed the full rewrite of `tests/scenarios/01-hello-world/test_hello_world.py`. All 6 ACs (AC-1 through AC-6) are implemented. Step 1 prompts Claude (haiku) for a greeting, step 2 resumes with a response in the detected language. Dry-run path is correct (fake result passes all ACs). Report generation follows the 02-konvert-agents pattern (step table, LOG-3 compliance). Error handling covers timeout and binary-not-found. Three minor issues found, no blockers.
+
+**Issues**
+- [minor] AC ordering: AC-6 (session_id check) is evaluated between AC-3 and AC-4, which is logically correct but numbering-wise confusing in the report output. Consider renumbering or reordering ACs so the report reads sequentially.
+- [minor] `_detect_language` fallback to "en" (L49) means AC-3 can never fail — if Claude outputs something unexpected (e.g., Italian), the test silently defaults to English. Consider returning `None` on no match and failing AC-3 explicitly.
+- [minor] `step2_start` (L153) is only defined inside the `try` block, but referenced in the `except` block (L207). Currently safe because `result_step2` is still `None` when AC-6 fails, but a defensive `step2_start = time.time()` before the try would be more robust.
+
+**For kiss-orchestrator**
+Proceed to next step.

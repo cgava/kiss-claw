@@ -1,0 +1,28 @@
+session: "20260417-223204"
+created: "2026-04-17T20:33:07"
+
+need:
+why: |
+  Compliance et séparation public/privé. À terme, deux chaînes LLM distinctes traiteront les données selon leur sensibilité (s0 = public/cloud, s2 = privé/souverain).
+  Catégorie : feature
+raw: |
+  Réutiliser obsidian-wiki avec structure duale : _raw/s0 et _raw/s2 pour ingestion, vault/s0 et vault/s2 pour stockage. Skills de maintenance isolés par zone. Cross-linking asymétrique s2→s0 uniquement.
+elicited: |
+  Mécanisme déterministe de configuration (pas de logique dans les skills). Évaluation comparative des solutions avant implémentation. Validation sur knlg-repo (déjà commité).
+constraints: |
+  Pas d a priori technique. Évaluer avant de décider. knlg-repo disponible pour essais.
+
+log:
+  - agent: "kiss-orchestrator"
+    claude_session: "c120109f-6fd9-4896-a0bf-e683fa639c19"
+    timestamp: "2026-04-18T05:50:21Z"
+    task: "Délégation kiss-executor — Audit exhaustif adhérences ancienne structure dans obsidian-wiki + knlg-repo"
+    result: "En cours — délégué à kiss-executor"
+    children: []
+  - agent: "kiss-executor"
+    claude_session: "executor-20260417-223204"
+    parent: "c120109f-6fd9-4896-a0bf-e683fa639c19"
+    timestamp: "2026-04-17T22:45:00Z"
+    task: "Phase 1 steps 1-2 — Inventaire mecanismes de routage par zone de sensibilite + analyse resolution chemins de tous les skills obsidian-wiki"
+    result: "scratch ecrit avec (1) tableau de 10 mecanismes possibles avec difficulte/avantages/inconvenients, (2) tableau de resolution chemins pour 12 skills, (3) 7 observations cles. Recommandation: override VAULT_PATH+RAW_DIR via wrapper agent."
+    children: []

@@ -3,9 +3,10 @@
 | Field | Value |
 |-------|-------|
 | Status | **PASS** |
-| Date | 2026-04-15T19:35:39Z |
-| Duration | 0.0s |
-| Session ID | `dry-run-000` |
+| Date | 2026-04-17T20:21:50Z |
+| Duration | 18.5s |
+| Session ID | `b4775225-fbdb-46fb-ba90-3489e541cfdf` |
+| Cost | $0.053472500000000006 |
 
 ## Environment
 
@@ -98,16 +99,37 @@
 
 _No workspace path provided._
 
+
+## Scenario Steps
+
+| # | Step | Duration | Status | Detail |
+|---|------|----------|--------|--------|
+| 1 | step-1-greet | 8.5s | PASS | lang=en, text=How are you? |
+| 2 | step-2-respond | 10.0s | PASS | response=I'm doing well, thanks for asking! I'm ready to help with yo |
+
 ## Acceptance Criteria
 
 | AC | Result | Detail |
 |----|--------|--------|
-| AC-1 | PASS | Exit code is 0 |
-| AC-2 | PASS | stdout is non-empty |
-| AC-3 | PASS | JSON parsed with 'result' key |
-| AC-4 | PASS | is_error is False |
-| AC-5 | PASS | Response contains 'hello' — SKIP (dry-run) |
-| AC-6 | PASS | session_id is non-empty string |
+| AC-1 | PASS | Step 1 exit code is 0 |
+| AC-2 | PASS | Step 1 output is non-empty |
+| AC-3 | PASS | Language detected: English |
+| AC-4 | PASS | session_id is non-empty string |
+| AC-5 | PASS | Step 2 exit code is 0 |
+| AC-6 | PASS | Step 2 output is non-empty |
+
+## Consumption
+
+| Metric | Value |
+|--------|-------|
+| Duration (API) | 5.1s (0.1min) |
+| Duration (API calls only) | 4.9s |
+| Turns | 1 |
+| Total cost | $0.0535 |
+| Stop reason | end_turn |
+| Input tokens | 10 |
+| Cache (create/read) | 41,978 / 0 |
+| Output tokens | 198 |
 
 ## Diagnosis
 
