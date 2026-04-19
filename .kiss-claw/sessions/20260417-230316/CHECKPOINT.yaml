@@ -1,34 +1,52 @@
 session: "20260417-230316"
 created: "2026-04-17T22:04:41"
+claude_session: "c120109f-6fd9-4896-a0bf-e683fa639c19"
 
 need:
-why: |
-  Raison profonde : Les tests des agents kiss-claw tournent sur le host, donc les résultats peuvent être pollués par les plugins, hooks, MCP et CLAUDE.md de l environnement de dev. On veut garantir que les agents testés (SUT) s executent dans un environnement Docker vierge pour des résultats fiables.
-  Catégorie : feature
-raw: |
-  Faire tourner les agents testés dans un conteneur Docker vierge via my-claude-minion.
-  Le test runner reste sur le host pour bénéficier du contexte de dev.
-  L auth OAuth du host est montée en read-only dans le conteneur.
-elicited: |
-  - Agent testé (SUT) → Docker (environnement vierge, zéro pollution)
-  - Agent testant (test runner) → Host (bénéficie du contexte dev, plugins, MCP)
-  - my-claude-minion fournit déjà l image Docker avec isolation
-  - Contrainte forte : aucun plugin/hook/MCP du host ne doit fuir dans le conteneur
-constraints: |
-  - Ne pas modifier my-claude-minion (consommer son Docker tel quel)
-  - Ne pas faire tourner le test runner dans Docker
-  - Zéro dépendance externe supplémentaire
+  why: |
+    Raison profonde : Les tests des agents kiss-claw tournent sur le host, donc les résultats peuvent être pollués par les plugins, hooks, MCP et CLAUDE.md de l environnement de dev. On veut garantir que les agents testés (SUT) s exécutent dans un environnement Docker vierge pour des résultats fiables.
+    Catégorie : feature
+  raw: |
+    Faire tourner les agents testés dans un conteneur Docker vierge via my-claude-minion.
+    Le test runner reste sur le host pour bénéficier du contexte de dev.
+    L auth OAuth du host est montée en read-only dans le conteneur.
+  elicited: |
+    - Agent testé (SUT) → Docker (environnement vierge, zéro pollution)
+    - Agent testant (test runner) → Host (bénéficie du contexte dev, plugins, MCP)
+    - my-claude-minion fournit déjà l image Docker avec isolation
+    - Contrainte forte : aucun plugin/hook/MCP du host ne doit fuir dans le conteneur
+  constraints: |
+    - Ne pas modifier my-claude-minion (consommer son Docker tel quel)
+    - Ne pas faire tourner le test runner dans Docker
+    - Zéro dépendance externe supplémentaire
 
 log:
-  - agent: "kiss-orchestrator"
-    claude_session: "c120109f-6fd9-4896-a0bf-e683fa639c19"
-    timestamp: "2026-04-19T06:16:50Z"
-    task: "Délégation kiss-executor — Phase 1 audit Docker + design document"
-    result: "En cours — délégué à kiss-executor"
-    children:
+  - phase: "Phase 1 — Audit Docker my-claude-minion + design isolation tests"
+    started: "2026-04-19T06:16:50Z"
+    ended: "2026-04-19T06:19:07Z"
+    steps:
+      - agent: "kiss-orchestrator"
+        claude_session: "c120109f-6fd9-4896-a0bf-e683fa639c19"
+        parent_session: ""
+        timestamp: "2026-04-19T06:16:50Z"
+        task: |
+          Délégation kiss-executor — Phase 1 audit Docker + design document.
+        result: |
+          En cours — délégué à kiss-executor.
+        children: []
       - agent: "kiss-executor"
         claude_session: "agent-a47b23654307e49fc"
+        parent_session: "c120109f-6fd9-4896-a0bf-e683fa639c19"
         timestamp: "2026-04-19T06:19:07Z"
-        task: "Phase 1 — Audit Docker my-claude-minion + scenario_runner + design document for isolation tests"
-        result: "Audited Dockerfile (debian-slim, claude CLI via npm, python3 venv, OAuth via bind mount), entrypoint.sh (venv activation, OAuth validation, exec), build.sh. Audited cli.py invoke() (subprocess wrapper with session resume, dry-run, flags) and scenario_runner.py (multi-step scenario execution with assertions). Produced design document at docs/designs/260419-docker-isolation-tests.md covering: architecture (host runner + Docker SUT), invoke() interface changes (isolation param, docker_invoke wrapper), mount strategy (staged OAuth copy, exclude settings/CLAUDE.md/MCP), session resume (deferred to v2), constraints (no vendor changes), risks and mitigations."
+        task: |
+          Phase 1 — Audit Docker my-claude-minion + scenario_runner + design document for isolation tests.
+        result: |
+          Audited Dockerfile (debian-slim, claude CLI via npm, python3 venv, OAuth via bind mount),
+          entrypoint.sh (venv activation, OAuth validation, exec), build.sh. Audited cli.py invoke()
+          (subprocess wrapper with session resume, dry-run, flags) and scenario_runner.py (multi-step
+          scenario execution with assertions). Produced design document at
+          docs/designs/260419-docker-isolation-tests.md covering: architecture (host runner + Docker SUT),
+          invoke() interface changes (isolation param, docker_invoke wrapper), mount strategy (staged
+          OAuth copy, exclude settings/CLAUDE.md/MCP), session resume (deferred to v2), constraints
+          (no vendor changes), risks and mitigations.
         children: []
