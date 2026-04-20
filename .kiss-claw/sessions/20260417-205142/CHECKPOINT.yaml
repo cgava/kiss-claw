@@ -1,0 +1,39 @@
+session: "20260417-205142"
+created: "2026-04-19T20:28:06"
+
+need:
+  why: |
+    Reconstitution a posteriori (2026-04-19). Comprendre si les comportements d'ingestion
+    d'obsidian-wiki sont hardcodés dans les skills, avant de planifier un refactoring vers
+    un routage déclaratif. Catégorie : audit_technique / exploration.
+  raw: |
+    Audit ingestion obsidian-wiki + documentation pipelines.
+    Besoin (SESSIONS.json summary) : "Comprendre si les comportements d'ingestion
+    d'obsidian-wiki sont hardcodés dans les skills, avant de planifier un refactoring vers
+    un routage déclaratif."
+  elicited: |
+    Reconstitué le 2026-04-19 depuis STATE.md + SESSIONS.json summary (session clôturée
+    2026-04-18T00:05). Session exploratoire sans plan formalisé.
+
+    Outcome (SESSIONS.json summary) : Audit complet des 5 skills d'ingestion (wiki-ingest,
+    data-ingest, claude-history-ingest, codex-history-ingest, wiki-history-ingest).
+    Verdict : comportements en dur dans les SKILL.md, aucun mécanisme de routing
+    configurable. Documentation des 3 modes (Append/Full/Raw), pipeline wiki-ingest (7 étapes),
+    pipeline data-ingest (5 étapes) ajoutée dans knlg-repo/README.md.
+
+    Fichiers modifiés : workspace/my-obsidian-wiki/knlg-repo/README.md.
+
+    Décisions : Session exploratoire — pas de plan formalisé, audit + documentation uniquement.
+
+    Next : Planifier le refactoring vers un routage déclaratif d'ingestion ; ajouter un type
+    YouTube avec enrichissement métadonnées ; reprendre le INIT kiss-orchestrator avec les
+    questions 2 et 3.
+  constraints: |
+    Non documentées formellement — session exploratoire.
+
+    Aucune entrée de log reconstituable : aucun Claude .jsonl avec cwd=kiss-claw ne tombe
+    dans la fenêtre 2026-04-17 20:00 → 2026-04-18 00:00. Les transcripts de cette session
+    étaient dans un autre cwd (workspace/my-obsidian-wiki) et n'ont pas été synchronisés
+    dans .kiss-claw/sessions/claude-sessions/.
+
+log: []

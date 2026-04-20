@@ -1,0 +1,45 @@
+session: "20260413-220308"
+created: "2026-04-19T20:27:52"
+
+need:
+  why: |
+    Reconstitution a posteriori (2026-04-19). En mode dev, kiss-claw partageait un seul
+    répertoire .kiss-claw/ plat entre le projet hôte et le plugin : conflits de fichiers
+    d'état, impossibilité de gérer plusieurs sessions en parallèle. Le titre SESSIONS.json
+    ("ISSUE-002: Functional Test Framework") est trompeur — ISSUE-002 a été mise en pause
+    pour prioriser cette refonte. Catégorie : dette_technique / architecture.
+  raw: |
+    kiss-claw — Refonte persistence multi-session.
+    Goal (PLAN.md verbatim) : Restructurer .kiss-claw/ en 3 sous-dossiers (agents, project,
+    sessions) avec chemins configurables via variables d'environnement, symlinks possibles,
+    et support multi-session.
+  elicited: |
+    Reconstitué le 2026-04-19 depuis PLAN.md + STATE.md + CHECKPOINT.md (ancien format).
+    Cette session de soirée (22:03) a démarré la refonte v7 après avoir pausé ISSUE-002
+    Phase 7.1. Elle a été clôturée puis reprise dans la session 20260413-223433 qui porte
+    toute l'implémentation (commits 1ea12ce, 413ffc7, fd0151c, a692cee, f21f56e, 1b4e123,
+    acfd93b, da454c0, f4370bc, 8c086a2).
+
+    Phases planifiées (19 steps) :
+    - Phase 1 — Core : store.sh refonte (5 steps)
+    - Phase 2 — Init : init.sh interactif (5 steps)
+    - Phase 3 — Session management dans kiss-orchestrator (5 steps)
+    - Phase 4 — Adaptation agents + hooks (4 steps)
+    - Phase 5 — Tests + documentation (4 steps)
+  constraints: |
+    Non-goals (PLAN.md verbatim) :
+    - Dépendances externes (jq, npm, pip)
+    - Token stats (désactivé — voir ISSUES)
+    - UI graphique
+    - Suffixe de nom de session à la création
+
+    Contraintes additionnelles (inférées depuis code) :
+    - Rétrocompatibilité v6 (migration automatique via --migrate)
+    - store.sh reste seul point d'accès persistance
+
+    Aucune entrée de log reconstituable : aucun Claude .jsonl avec cwd=kiss-claw ne tombe
+    dans la fenêtre 2026-04-13 22:00 → 2026-04-14 00:00. La session a probablement été
+    tenue principalement hors-framework (les commits associés datent du 2026-04-13 mais
+    les transcripts correspondants n'ont pas été synchronisés).
+
+log: []

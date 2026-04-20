@@ -193,3 +193,4 @@ reviews) isolated while agent memories and project data persist across sessions.
 - **New session**: automatically created on init, or set `KISS_CLAW_SESSION` explicitly.
 - **List sessions**: `/kiss-store list sessions` shows all available sessions.
 - **Resume session**: set `KISS_CLAW_SESSION=<id>` to resume a previous session.
+

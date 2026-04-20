@@ -1,0 +1,43 @@
+session: "20260419-155850"
+created: "2026-04-19T18:09:04"
+
+need:
+why: |
+  Raison profonde : L utilisateur veut remonter aux motivations profondes des évolutions majeures de kiss-claw pour (B) consolider la traçabilité — les commits git et CHECKPOINT actuels sont partiels, notamment parce que les phases kiss-orchestrator n étaient pas systématiquement référencées dans les commits au début — et (C) prendre du recul méta sur son propre cheminement. Le README.md est le livrable final, mais la vraie valeur est la reconstitution du fil narratif.
+  Catégorie : dette_technique (dette documentaire + prise de recul)
+raw: |
+  j aimerais reprendre de la hauteur, et faire le bilan des différentes évolutions majeures de kiss-claw...
+  pour cela, j aimerais dans un premier temps, que tu fasse l inventaire des sessions claudes de kiss-claw, pour recréer les sessions kiss-claw (voir le skill kiss-enrich-chekpoint)
+  ensuite, à partir des sessions kiss-claw, tu vas m aider à retrouver pourquoi j ai fait évoluer kiss-claw, pour le mettre dans le README.md
+elicited: |
+  Après Q1 : l utilisateur a confirmé B (dette documentaire) + C (prise de recul méta).
+  Précision clé : les commits portent parfois la trace des phases orchestrator (format "type(scope): Phase N - ...") mais pas toujours — le mapping commit<->phase est incomplet.
+  Q2 (phases) : découpage en 4 phases validé (Inventaire / Reconstitution / Synthèse / README).
+  Q3 (contraintes) : scope = toutes les sessions du projet (la 1re session Claude a été effacée) ; coût LLM sans limite ; sections README courtes ; pas de refactoring ; pas de modification des CHECKPOINT existants ; README en FR.
+constraints: |
+  - Pas de refactoring du code existant
+  - Pas de modification des CHECKPOINT.yaml déjà complets (seuls les incomplets/manquants sont enrichis)
+  - Pas de nouveau format/outil (réutilisation de /kiss-claw:kiss-enrich-checkpoint)
+  - Pas de budget tokens contraint
+  - La 1re session Claude du projet a été effacée — elle sera marquée comme "perdue" dans l inventaire
+  - README final en français
+
+log:
+  - agent: "kiss-orchestrator"
+    claude_session: "13f4580c-e23c-403b-8eac-2e5aa4cc00cc"
+    timestamp: "2026-04-20T03:42:48Z"
+    task: "Délégation kiss-executor — Phase 4 rédaction section Historique des évolutions dans README.md"
+    result: "En cours — délégué à kiss-executor. Livrable : section FR en fin de README.md, 13 sous-sections chronologiques (v3 → Docker isolation), 1 paragraphe par évolution incluant le what + le why. Source : synthèse validée par l utilisateur."
+    children:
+      - agent: "kiss-executor"
+        claude_session: "agent-aa547247be708e242"
+        timestamp: "2026-04-19T20:28:38Z"
+        task: "Phase 2 — Reconstitution CHECKPOINTs pour 3 sessions (20260413-220308, 20260417-205142, 20260417-223204)"
+        result: "3/3 CHECKPOINT.yaml bootstrappés avec need section complet (why/raw/elicited/constraints). 0 log entries enrichies : aucun Claude .jsonl ne matche les fenêtres temporelles demandées. Pour 20260413-220308 (22:03+) : aucun .jsonl kiss-claw cwd après 20:14. Pour 20260417-205142 (20:51+) et 20260417-223204 (22:32+) : les 2 jsonls du 2026-04-17 (b4775225 à 20:21, 80c9e184 à 20:40) sont des tests hello-world et précèdent les sessions, pas leur vrai contenu. Cause racine identifiée : les sessions 20260417-* travaillaient dans workspace/my-obsidian-wiki (cwd différent) donc leurs transcripts ne sont pas dans .kiss-claw/sessions/claude-sessions/. Pour 20260413-220308 les transcripts soirée semblent non-synchronisés. Bilan : succès sur bootstrap need (3/3), échec complet enrichissement log (0/3) — limitation de la synchronisation, pas de la procédure. Anomalie structurelle documentée dans constraints de chaque CHECKPOINT."
+        children: []
+      - agent: "kiss-executor"
+        claude_session: "agent-a3b48d92bfe738532"
+        timestamp: "2026-04-20T03:45:03Z"
+        task: "Phase 4 — Ajout section Historique des évolutions (13 ères FR) au README.md"
+        result: "62 lignes ajoutées à la fin de README.md (195 → 257 lignes). Section `## Historique des évolutions` insérée après Multi-Session Support, précédée d une intro 5 lignes et d un séparateur ---. 13 sous-sections ### Ère N — <nom> (<date>) en ordre chronologique, chacune en 1 paragraphe (2-5 phrases) incluant le quoi et le pourquoi. Citations verbatim des CHECKPOINT pour les ères 6-10 et 12. Renvois explicites aux sections v5/v6/v7 pour les ères 1, 3 et 6 afin d éviter duplication. Ton factuel, aucun emoji. Aucune section existante modifiée. Aucune divergence par rapport au brief."
+        children: []
